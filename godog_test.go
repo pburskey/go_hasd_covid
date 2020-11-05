@@ -1,4 +1,4 @@
-package go_hasd_covid
+package main
 
 import (
 	"github.com/cucumber/godog"
@@ -7,7 +7,6 @@ import (
 func main() {
 
 }
-
 
 func iConsumeTheUrl() error {
 	return godog.ErrPending
@@ -25,7 +24,6 @@ func FeatureContext(s *godog.Suite) {
 
 }
 
-
 func InitializeTestSuite(ctx *godog.TestSuiteContext) {
 	ctx.BeforeSuite(
 		func() {
@@ -42,4 +40,3 @@ func InitializeScenario(ctx *godog.ScenarioContext) {
 	ctx.Step(`^the HASD has a covid site$`, theHASDHasACovidSite)
 	ctx.Step(`^the http status should be "([^"]*)"$`, theHttpStatusShouldBe)
 }
-

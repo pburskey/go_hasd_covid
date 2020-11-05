@@ -16,3 +16,5 @@ Scenario: The HASD web site is still available
   Then the http status should be "ok"' >> features/sunnyday.feature
 
 godog
+
+go get -u github.com/gocolly/colly/...
