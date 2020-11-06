@@ -4,10 +4,6 @@ import (
 	"github.com/cucumber/godog"
 )
 
-func main() {
-
-}
-
 func iConsumeTheUrl() error {
 	return godog.ErrPending
 }

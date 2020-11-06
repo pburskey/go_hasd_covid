@@ -1,7 +1,5 @@
 package main
 
-import "fmt"
-
 type Stack []string
 
 // IsEmpty: check if stack is empty
@@ -45,18 +43,18 @@ func (s *Stack) Peak() (string, bool) {
 //	}
 //	return list
 //}
-
-func main() {
-	var stack Stack // create a stack variable of type Stack
-
-	stack.Push("this")
-	stack.Push("is")
-	stack.Push("sparta!!")
-
-	for len(stack) > 0 {
-		x, y := stack.Pop()
-		if y == true {
-			fmt.Println(x)
-		}
-	}
-}
+//
+//func main() {
+//	var stack Stack // create a stack variable of type Stack
+//
+//	stack.Push("this")
+//	stack.Push("is")
+//	stack.Push("sparta!!")
+//
+//	for len(stack) > 0 {
+//		x, y := stack.Pop()
+//		if y == true {
+//			fmt.Println(x)
+//		}
+//	}
+//}

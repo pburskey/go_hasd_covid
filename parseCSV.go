@@ -6,6 +6,7 @@ import (
 	"io"
 	"log"
 	"os"
+	"strconv"
 )
 
 func parseCSV(fileName string) {
@@ -17,7 +18,7 @@ func parseCSV(fileName string) {
 	r := csv.NewReader(csvFile)
 	if r != nil {
 
-		dataMap := make(map[string]map[string]CovidMetric)
+		dataMap := make(map[string]map[string]*CovidMetric)
 		//categories["student"] = make(map[string]CovidMetric)
 		//categories["staff"] = make(map[string]CovidMetric)
 		//var metric CovidMetric
@@ -50,6 +51,7 @@ func parseCSV(fileName string) {
 			}
 
 		}
+		log.Println(dataMap)
 	}
 
 }
@@ -80,7 +82,7 @@ type CovidMetric struct {
 	ResolvedCases      int
 }
 
-func parseCSVRecord(record []string, dataMap map[string]map[string]CovidMetric, categories *Stack, schools *Stack) {
+func parseCSVRecord(record []string, dataMap map[string]map[string]*CovidMetric, categories *Stack, schools *Stack) {
 	if record == nil || len(record) <= 0 {
 		return
 	}
@@ -89,9 +91,11 @@ func parseCSVRecord(record []string, dataMap map[string]map[string]CovidMetric, 
 		var category string = record[1]
 		_, ok := dataMap[category]
 		if !ok {
-			dataMap[category] = make(map[string]CovidMetric)
+			dataMap[category] = make(map[string]*CovidMetric)
 			for _, aSchool := range *schools {
-				fmt.Print(aSchool)
+				//fmt.Println(aSchool)
+				var metric CovidMetric
+				dataMap[category][aSchool] = &metric
 			}
 		}
 		fmt.Printf("Found category %s\n", category)
@@ -101,13 +105,61 @@ func parseCSVRecord(record []string, dataMap map[string]map[string]CovidMetric, 
 		var metricName string = record[1]
 		fmt.Printf("Category %s Metric: %s ... Record %s\n", category, metricName, record)
 		if metricName == "Active Cases" {
-
+			i := 0
+			for _, aSchool := range *schools {
+				metric, found := dataMap[category][aSchool]
+				if !found {
+					log.Fatal("poop")
+				}
+				value, err := strconv.Atoi(record[2+i])
+				if err != nil {
+					log.Fatal("Encountered a non numeric value in csv data position")
+				}
+				metric.ActiveCases = value
+				i++
+			}
 		} else if metricName == "Total Positive Cases" {
-
+			i := 0
+			for _, aSchool := range *schools {
+				metric, found := dataMap[category][aSchool]
+				if !found {
+					log.Fatal("poop")
+				}
+				value, err := strconv.Atoi(record[2+i])
+				if err != nil {
+					log.Fatal("Encountered a non numeric value in csv data position")
+				}
+				metric.TotalPositiveCases = value
+				i++
+			}
 		} else if metricName == "Probable Cases" {
-
+			i := 0
+			for _, aSchool := range *schools {
+				metric, found := dataMap[category][aSchool]
+				if !found {
+					log.Fatal("poop")
+				}
+				value, err := strconv.Atoi(record[2+i])
+				if err != nil {
+					log.Fatal("Encountered a non numeric value in csv data position")
+				}
+				metric.ProbableCases = value
+				i++
+			}
 		} else if metricName == "Resolved (no longer active)" {
-
+			i := 0
+			for _, aSchool := range *schools {
+				metric, found := dataMap[category][aSchool]
+				if !found {
+					log.Fatal("poop")
+				}
+				value, err := strconv.Atoi(record[2+i])
+				if err != nil {
+					log.Fatal("Encountered a non numeric value in csv data position")
+				}
+				metric.ResolvedCases = value
+				i++
+			}
 		}
 
 	}

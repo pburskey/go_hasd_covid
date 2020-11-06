@@ -1,11 +1,11 @@
 ,,HHS,HES,HMS-FWA,NGES,GES,GMS
 0,Students,,,,,,
-1,Active Cases,2,0,1,1,2,2
-2,Total Positive Cases,16,4,24,4,6,13
-3,Probable Cases,2,2,0,0,1,0
-4,Resolved (no longer active),14,4,23,3,4,11
+1,Active Cases,10,6,3,3,5,2
+2,Total Positive Cases,40,12,33,10,14,20
+3,Total Probable Cases,3,3,2,0,1,1
+4,Resolved (no longer active),30,6,30,7,9,18
 5,Staff,,,,,,
-6,Active Cases,0,2,1,0,2,1
-7,Total Positive Cases,2,3,5,2,4,4
-8,Probable Cases,0,0,0,0,0,0
-9,Resolved (no longer active),2,1,4,2,2,3
+6,Active Cases,3,2,3,2,3,0
+7,Total Positive Cases,10,8,13,5,9,4
+8,Total Probable Cases,0,0,0,0,0,0
+9,Resolved (no longer active),7,6,10,3,6,4
