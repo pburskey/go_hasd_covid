@@ -1,13 +1,11 @@
 package main
 
 import (
-	"encoding/json"
 	"fmt"
 	"github.com/gocolly/colly"
 	"golang.org/x/net/html"
 	"log"
 	"net/http"
-	"net/url"
 )
 
 func main() {
@@ -16,23 +14,34 @@ func main() {
 	if err != nil {
 		log.Fatal(fmt.Errorf("Unable to acquire covid data: %s: %v", covidAsString, err))
 	}
+	ExtractUsingColly()
 
 }
 
 var hasd_URL string = "https://www.hasd.org/community/covid-19-daily-updates.cfm"
 
 func ExtractUsingColly() {
-	URL := url.URL.Query(hasd_URL).Get("url")
-	if URL == "" {
-		log.Println("URL is bad")
-		return
-	}
-	log.Println("visiting", URL)
 
 	c := colly.NewCollector(
 		colly.AllowedDomains("hasd.org"),
-		colly.CacheDir("./cache"),
 	)
+
+	c.OnHTML("table[id=\"hasd\"] tbody", func(e *colly.HTMLElement) {
+		e.ForEach("tr", func(_ int, row *colly.HTMLElement) {
+			//talk := Talk{}
+			//for each line "tr" do amazing things
+			//talks = append(talks, talk)
+		})
+	})
+
+	// Before making a request print "Visiting ..."
+	c.OnRequest(func(r *colly.Request) {
+		log.Println("visiting", r.URL.String())
+	})
+	err := c.Visit(hasd_URL)
+	if err != nil {
+		println(err)
+	}
 
 }
 
