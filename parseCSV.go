@@ -90,8 +90,8 @@ func parseCSVRecord(record []string, dataMap map[string]map[string]CovidMetric, 
 		_, ok := dataMap[category]
 		if !ok {
 			dataMap[category] = make(map[string]CovidMetric)
-			for _, aSchool := range schools {
-
+			for _, aSchool := range *schools {
+				fmt.Print(aSchool)
 			}
 		}
 		fmt.Printf("Found category %s\n", category)

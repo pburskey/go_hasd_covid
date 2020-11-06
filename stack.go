@@ -1,5 +1,7 @@
 package main
 
+import "fmt"
+
 type Stack []string
 
 // IsEmpty: check if stack is empty
@@ -17,9 +19,9 @@ func (s *Stack) Pop() (string, bool) {
 	if s.IsEmpty() {
 		return "", false
 	} else {
-		index := len(*s) - 1 // Get the index of the top most element.
+		index := len(*s) - 1   // Get the index of the top most element.
 		element := (*s)[index] // Index into the slice and obtain the element.
-		*s = (*s)[:index] // Remove it from the stack by slicing it off.
+		*s = (*s)[:index]      // Remove it from the stack by slicing it off.
 		return element, true
 	}
 }
@@ -28,36 +30,33 @@ func (s *Stack) Peak() (string, bool) {
 	if s.IsEmpty() {
 		return "", false
 	} else {
-		index := len(*s) - 1 // Get the index of the top most element.
+		index := len(*s) - 1   // Get the index of the top most element.
 		element := (*s)[index] // Index into the slice and obtain the element.
 		return element, true
 	}
 }
 
-func (s *Stack) PeakAtList() (string[]) {
-	var list [len(*s)]string
-	if s.IsEmpty() {
-		return "", false
-	} else {
-		index := len(*s) - 1 // Get the index of the top most element.
-		element := (*s)[index] // Index into the slice and obtain the element.
-		return element, true
-	}
-}
-
-
-//
-//func main() {
-//	var stack Stack // create a stack variable of type Stack
-//
-//	stack.Push("this")
-//	stack.Push("is")
-//	stack.Push("sparta!!")
-//
-//	for len(stack) > 0 {
-//		x, y := stack.Pop()
-//		if y == true {
-//			fmt.Println(x)
-//		}
+//func (s *Stack) PeakAtList() (string[]) {
+//	length := len(*s)
+//	var list [length]string
+//	for i := 0; i < length; i++{
+//		aString := (*s)[i]
+//		list[i] := aString
 //	}
+//	return list
 //}
+
+func main() {
+	var stack Stack // create a stack variable of type Stack
+
+	stack.Push("this")
+	stack.Push("is")
+	stack.Push("sparta!!")
+
+	for len(stack) > 0 {
+		x, y := stack.Pop()
+		if y == true {
+			fmt.Println(x)
+		}
+	}
+}
