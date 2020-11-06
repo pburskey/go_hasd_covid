@@ -105,63 +105,45 @@ func parseCSVRecord(record []string, dataMap map[string]map[string]*CovidMetric,
 		var metricName string = record[1]
 		fmt.Printf("Category %s Metric: %s ... Record %s\n", category, metricName, record)
 		if metricName == "Active Cases" {
-			i := 0
-			for _, aSchool := range *schools {
-				metric, found := dataMap[category][aSchool]
-				if !found {
-					log.Fatal("poop")
-				}
-				value, err := strconv.Atoi(record[2+i])
-				if err != nil {
-					log.Fatal("Encountered a non numeric value in csv data position")
-				}
+			metricAssignmentFunction := func(metric *CovidMetric, value int) {
 				metric.ActiveCases = value
-				i++
 			}
+			updateSchoolMetrics(record, category, dataMap, schools, metricAssignmentFunction)
+
 		} else if metricName == "Total Positive Cases" {
-			i := 0
-			for _, aSchool := range *schools {
-				metric, found := dataMap[category][aSchool]
-				if !found {
-					log.Fatal("poop")
-				}
-				value, err := strconv.Atoi(record[2+i])
-				if err != nil {
-					log.Fatal("Encountered a non numeric value in csv data position")
-				}
+			metricAssignmentFunction := func(metric *CovidMetric, value int) {
 				metric.TotalPositiveCases = value
-				i++
 			}
+			updateSchoolMetrics(record, category, dataMap, schools, metricAssignmentFunction)
 		} else if metricName == "Probable Cases" {
-			i := 0
-			for _, aSchool := range *schools {
-				metric, found := dataMap[category][aSchool]
-				if !found {
-					log.Fatal("poop")
-				}
-				value, err := strconv.Atoi(record[2+i])
-				if err != nil {
-					log.Fatal("Encountered a non numeric value in csv data position")
-				}
+			metricAssignmentFunction := func(metric *CovidMetric, value int) {
 				metric.ProbableCases = value
-				i++
 			}
+			updateSchoolMetrics(record, category, dataMap, schools, metricAssignmentFunction)
 		} else if metricName == "Resolved (no longer active)" {
-			i := 0
-			for _, aSchool := range *schools {
-				metric, found := dataMap[category][aSchool]
-				if !found {
-					log.Fatal("poop")
-				}
-				value, err := strconv.Atoi(record[2+i])
-				if err != nil {
-					log.Fatal("Encountered a non numeric value in csv data position")
-				}
+			metricAssignmentFunction := func(metric *CovidMetric, value int) {
 				metric.ResolvedCases = value
-				i++
 			}
+			updateSchoolMetrics(record, category, dataMap, schools, metricAssignmentFunction)
 		}
 
 	}
 
+}
+
+func updateSchoolMetrics(record []string, category string, dataMap map[string]map[string]*CovidMetric, schools *Stack, metricAssignmentFunction func(*CovidMetric, int)) {
+	i := 0
+	for _, aSchool := range *schools {
+		metric, found := dataMap[category][aSchool]
+		if !found {
+			log.Fatal("poop")
+		}
+		value, err := strconv.Atoi(record[2+i])
+		if err != nil {
+			log.Fatal("Encountered a non numeric value in csv data position")
+		}
+		metricAssignmentFunction(metric, value)
+
+		i++
+	}
 }
