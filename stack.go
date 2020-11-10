@@ -34,16 +34,10 @@ func (s *Stack) Peak() (string, bool) {
 	}
 }
 
-//func (s *Stack) PeakAtList() (string[]) {
-//	length := len(*s)
-//	var list [length]string
-//	for i := 0; i < length; i++{
-//		aString := (*s)[i]
-//		list[i] := aString
-//	}
-//	return list
-//}
-//
+func (s *Stack) PeakAtList() []string {
+	return *s
+}
+
 //func main() {
 //	var stack Stack // create a stack variable of type Stack
 //
