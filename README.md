@@ -1,9 +1,13 @@
 # go_hasd_covid
 
 
+Redis help.... 
 
-https://gianarb.it/blog/make-boring-task-enjotable-with-go-colly
+open cli
+redis-cli
 
+get all keys
+KEYS *
 
-
-https://levelup.gitconnected.com/web-scraping-and-task-scheduling-with-golang-da0421abd04c
+find all data for key 
+smembers SCHOOL_HES_DATA
