@@ -1,11 +1,15 @@
 package main
 
 import (
+	"encoding/json"
 	"fmt"
 	"github.com/gomodule/redigo/redis"
+	"github.com/gorilla/mux"
 	"io/ioutil"
 	"log"
+	"net/http"
 	"os"
+	"strconv"
 	"time"
 )
 
@@ -26,36 +30,6 @@ func main() {
 	if err != nil {
 		fmt.Println(err)
 	}
-
-	//conn.Send("HMSET", "album:1", "title", "Red", "rating", 5)
-	//conn.Send("HMSET", "album:2", "title", "Earthbound", "rating", 1)
-	//conn.Send("HMSET", "album:3", "title", "Beat")
-	////conn.Send("LPUSH", "albums", "1")
-	////conn.Send("LPUSH", "albums", "2")
-	////conn.Send("LPUSH", "albums", "3")
-	//values, err := redis.Values(conn.Do("SORT", "albums",
-	//	"BY", "album:*->rating",
-	//	"GET", "album:*->title",
-	//	"GET", "album:*->rating"))
-	//if err != nil {
-	//	fmt.Println(err)
-	//	return
-	//}
-	//
-	//for len(values) > 0 {
-	//	var title string
-	//	rating := -1 // initialize to illegal value to detect nil.
-	//	values, err = redis.Scan(values, &title, &rating)
-	//	if err != nil {
-	//		fmt.Println(err)
-	//		return
-	//	}
-	//	if rating == -1 {
-	//		fmt.Println(title, "not-rated")
-	//	} else {
-	//		fmt.Println(title, rating)
-	//	}
-	//}
 
 	arguments := os.Args[1:]
 	var fileOrDirectory string = arguments[0] //"sample_data.csv"
@@ -141,20 +115,36 @@ func main() {
 		}
 
 	}
+	r := mux.NewRouter()
 
+	api := r.PathPrefix("/api/v1").Subrouter()
+	api.HandleFunc("", get).Methods(http.MethodGet)
+	api.HandleFunc("", post).Methods(http.MethodPost)
+	api.HandleFunc("", put).Methods(http.MethodPut)
+	api.HandleFunc("", delete).Methods(http.MethodDelete)
+
+	api.HandleFunc("/user/{userID}/comment/{commentID}", params).Methods(http.MethodGet)
+	api.HandleFunc("/schools", schools).Methods(http.MethodGet)
+	api.HandleFunc("/categories", categories).Methods(http.MethodGet)
+	api.HandleFunc("/dates", dates).Methods(http.MethodGet)
+
+	log.Fatal(http.ListenAndServe(":8080", r))
 }
 
 func save(aDateAndTime time.Time, dataMap map[string]map[string]*CovidMetric) {
-	for organization, schools := range dataMap {
-		//log.Println(organization)
+	if dataMap != nil && len(dataMap) > 0 {
+		for organization, schools := range dataMap {
+			//log.Println(organization)
 
-		for schoolName, metric := range schools {
-			//log.Println(schoolName)
-			//log.Println(metric)
-			saveMetric(organization, schoolName, aDateAndTime, metric)
+			for schoolName, metric := range schools {
+				//log.Println(schoolName)
+				//log.Println(metric)
+				saveMetric(organization, schoolName, aDateAndTime, metric)
+			}
+
 		}
-
 	}
+
 }
 
 func newPool() *redis.Pool {
@@ -218,4 +208,195 @@ func (c *Counter) next() *Counter {
 }
 func (c *Counter) nextId() uint {
 	return (*c).next().id
+}
+
+type server struct{}
+
+func (s *server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusOK)
+	w.Write([]byte(`{"message": "hello world"}`))
+}
+
+func get(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusOK)
+	w.Write([]byte(`{"message": "get called"}`))
+}
+
+func post(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusCreated)
+	w.Write([]byte(`{"message": "post called"}`))
+}
+
+func put(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusAccepted)
+	w.Write([]byte(`{"message": "put called"}`))
+}
+
+func delete(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusOK)
+	w.Write([]byte(`{"message": "delete called"}`))
+}
+
+func params(w http.ResponseWriter, r *http.Request) {
+	pathParams := mux.Vars(r)
+	w.Header().Set("Content-Type", "application/json")
+
+	userID := -1
+	var err error
+	if val, ok := pathParams["userID"]; ok {
+		userID, err = strconv.Atoi(val)
+		if err != nil {
+			w.WriteHeader(http.StatusInternalServerError)
+			w.Write([]byte(`{"message": "need a number"}`))
+			return
+		}
+	}
+
+	commentID := -1
+	if val, ok := pathParams["commentID"]; ok {
+		commentID, err = strconv.Atoi(val)
+		if err != nil {
+			w.WriteHeader(http.StatusInternalServerError)
+			w.Write([]byte(`{"message": "need a number"}`))
+			return
+		}
+	}
+
+	query := r.URL.Query()
+	location := query.Get("location")
+
+	w.Write([]byte(fmt.Sprintf(`{"userID": %d, "commentID": %d, "location": "%s" }`, userID, commentID, location)))
+}
+
+func cacheKeyExists(aKey string) (exists bool) {
+	conn := getRedisConnection()
+	defer conn.Close()
+	var aValue int64
+
+	aValue, err := redis.Int64(conn.Do("EXISTS", aKey))
+
+	if err != nil {
+		fmt.Println(err)
+		return
+	}
+	exists = (aValue != 0)
+	return
+}
+
+func categories(w http.ResponseWriter, r *http.Request) {
+
+	w.Header().Set("Content-Type", "application/json")
+
+	conn := getRedisConnection()
+	defer conn.Close()
+
+	aValues, err := redis.Values(conn.Do("SMEMBERS", "CATEGORIES"))
+	log.Println(aValues)
+
+	if err != nil {
+		fmt.Println(err)
+		return
+	}
+
+	var data []string
+	if err := redis.ScanSlice(aValues, &data); err != nil {
+		fmt.Println(err)
+		return
+	}
+	//for len(aValues) > 0 {
+	//	var aString string
+	//	values, err = redis.Scan(values, &aString)
+	//	if err != nil {
+	//		fmt.Println(err)
+	//		return
+	//	}
+	//
+	//}
+
+	metricData := getMetricsByCategory("Staff")
+	log.Print(metricData)
+
+	json, err := json.Marshal(&data)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+	w.WriteHeader(http.StatusOK)
+	w.Header().Set("Content-Type", "application/json")
+	w.Write(json)
+}
+
+func schools(w http.ResponseWriter, r *http.Request) {
+
+	w.Header().Set("Content-Type", "application/json")
+
+	conn := getRedisConnection()
+	defer conn.Close()
+
+	aValues, err := redis.Values(conn.Do("SMEMBERS", "SCHOOLS"))
+	log.Println(aValues)
+
+	if err != nil {
+		fmt.Println(err)
+		return
+	}
+
+	var data []string
+	if err := redis.ScanSlice(aValues, &data); err != nil {
+		fmt.Println(err)
+		return
+	}
+	getMetricInCache(conn, "METRIC:471")
+	metricData := getMetricsBySchool("HES")
+	log.Print(metricData)
+	json, err := json.Marshal(&data)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+	w.WriteHeader(http.StatusOK)
+	w.Header().Set("Content-Type", "application/json")
+	w.Write(json)
+}
+
+func dates(w http.ResponseWriter, r *http.Request) {
+
+	w.Header().Set("Content-Type", "application/json")
+
+	conn := getRedisConnection()
+	defer conn.Close()
+
+	aValues, err := redis.Values(conn.Do("SMEMBERS", "DATES"))
+	log.Println(aValues)
+
+	if err != nil {
+		fmt.Println(err)
+		return
+	}
+
+	var data []string
+	if err := redis.ScanSlice(aValues, &data); err != nil {
+		fmt.Println(err)
+		return
+	}
+
+	metricData := getMetricsByDate("20201020072916")
+	log.Print(metricData)
+
+	json, err := json.Marshal(&data)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	getMetric("METRIC:491")
+
+	w.WriteHeader(http.StatusOK)
+	w.Header().Set("Content-Type", "application/json")
+	w.Write(json)
 }

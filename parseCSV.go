@@ -2,6 +2,7 @@ package main
 
 import (
 	"encoding/csv"
+	"encoding/json"
 	"fmt"
 	"github.com/gomodule/redigo/redis"
 	"io"
@@ -32,7 +33,18 @@ func parseDateFromFileName(fileName string) time.Time {
 
 func parseCSV(fileName string) (time.Time, map[string]map[string]*CovidMetric) {
 
+	key := fmt.Sprintf("file:%s_data", fileName)
+	dataMap := make(map[string]map[string]*CovidMetric)
 	aTime := parseDateFromFileName(fileName)
+
+	conn := getRedisConnection()
+	defer conn.Close()
+
+	if cacheKeyExists(key) {
+		return aTime, nil
+
+	}
+
 	//fmt.Println("Date and time: %s from file name: %s", aTime, fileName)
 	csvFile, err := os.Open(fileName)
 	if err != nil {
@@ -42,17 +54,6 @@ func parseCSV(fileName string) (time.Time, map[string]map[string]*CovidMetric) {
 	if r == nil {
 		return aTime, nil
 	}
-
-	dataMap := make(map[string]map[string]*CovidMetric)
-	//categories["student"] = make(map[string]CovidMetric)
-	//categories["staff"] = make(map[string]CovidMetric)
-	//var metric CovidMetric
-	//metric.ActiveCases =1
-	//metric.ProbableCases = 2
-	//metric.ResolvedCases = 3
-	//metric.TotalPositiveCases = 4
-	//categories["student"]["hhs"] = metric
-	//
 
 	var categories Stack
 	var schools Stack
@@ -77,6 +78,13 @@ func parseCSV(fileName string) (time.Time, map[string]map[string]*CovidMetric) {
 
 	}
 	//log.Println(dataMap)
+
+	aCacheSetResult, err := conn.Do("SET", key, dataMap)
+	log.Print(aCacheSetResult)
+	if err != nil || aCacheSetResult != "OK" {
+		fmt.Println(err)
+	}
+
 	return aTime, dataMap
 
 }
@@ -108,10 +116,10 @@ type CovidMetric struct {
 }
 
 type DataPoint struct {
-	CovidMetric
-	category string
-	school   string
-	dateTime string
+	Metric   CovidMetric
+	Category string
+	School   string
+	DateTime time.Time
 }
 
 func parseCSVRecord(record []string, dataMap map[string]map[string]*CovidMetric, categories *Stack, schools *Stack) {
@@ -191,11 +199,19 @@ func saveMetric(category string, school string, dateAndTime time.Time, metric *C
 
 	aDateAsString := asYYYYMMDDHH24MiSS(dateAndTime)
 
-	//log.Println(key)
-	aValue, error := conn.Do("HSET", key, "category", category, "school", school, "dateTime", aDateAsString, "ActiveCases", metric.ActiveCases, "TotalPositiveCases", metric.TotalPositiveCases, "ProbableCases", metric.ProbableCases, "ResolvedCases", metric.ResolvedCases)
-	if error != nil {
-		log.Fatal("Unable to store data in redis.... Key:%s Message:%s Error:%s", key, aValue, error)
+	metricDataPoint := &DataPoint{
+		Metric:   *metric,
+		Category: category,
+		School:   school,
+		DateTime: dateAndTime,
 	}
+	setMetricInCache(conn, metricDataPoint, key)
+
+	////log.Println(key)
+	//aValue, error := conn.Do("HSET", key, "category", category, "school", school, "dateTime", aDateAsString, "ActiveCases", metric.ActiveCases, "TotalPositiveCases", metric.TotalPositiveCases, "ProbableCases", metric.ProbableCases, "ResolvedCases", metric.ResolvedCases)
+	//if error != nil {
+	//	log.Fatal("Unable to store data in redis.... Key:%s Message:%s Error:%s", key, aValue, error)
+	//}
 	//aValue, error = conn.Do("LPUSH", "METRICS", identity)
 	//if error != nil {
 	//	log.Fatal("Unable to store data in redis.... Key:%s Message:%s Error:%s", key, aValue, error)
@@ -205,124 +221,76 @@ func saveMetric(category string, school string, dateAndTime time.Time, metric *C
 
 	//aValue, error = conn.Do("LPUSH", "METRICS", fmt.Sprintf("%d", identity))
 
-	aValue, error = conn.Do("sadd", "CATEGORIES", category)
-	aValue, error = conn.Do("sadd", "SCHOOLS", school)
-	aValue, error = conn.Do("sadd", "DATES", aDateAsString)
-
+	_, error := conn.Do("sadd", "CATEGORIES", category)
+	if error != nil {
+		log.Fatal("Unable to store data in redis.... ", error)
+	}
+	_, error = conn.Do("sadd", "SCHOOLS", school)
+	if error != nil {
+		log.Fatal("Unable to store data in redis.... ", error)
+	}
+	_, error = conn.Do("sadd", "DATES", aDateAsString)
+	if error != nil {
+		log.Fatal("Unable to store data in redis.... ", error)
+	}
 	/*
 		school data
 	*/
-	aValue, error = conn.Do("sadd", fmt.Sprintf("SCHOOL_%s_DATA", school), key)
-
+	_, error = conn.Do("sadd", fmt.Sprintf("SCHOOL_%s_DATA", school), key)
+	if error != nil {
+		log.Fatal("Unable to store data in redis.... ", error)
+	}
 	/*
 		category data
 	*/
-	aValue, error = conn.Do("sadd", fmt.Sprintf("CATEGORY_%s_DATA", category), key)
-
+	_, error = conn.Do("sadd", fmt.Sprintf("CATEGORY_%s_DATA", category), key)
+	if error != nil {
+		log.Fatal("Unable to store data in redis.... ", error)
+	}
 	/*
 		data by date
 	*/
-	aValue, error = conn.Do("sadd", fmt.Sprintf("DATE_%s_DATA", aDateAsString), key)
-
-	log.Println(error)
-	log.Println(aValue)
+	_, error = conn.Do("sadd", fmt.Sprintf("DATE_%s_DATA", aDateAsString), key)
+	if error != nil {
+		log.Fatal("Unable to store data in redis.... ", error)
+	}
+	//log.Println(error)
+	//log.Println(aValue)
 
 }
 
-// set executes the redis SET command
-func set(c redis.Conn) error {
-	_, err := c.Do("SET", "Favorite Movie", "Repo Man")
+func setMetricInCache(c redis.Conn, metric *DataPoint, key string) error {
+
+	// serialize User object to JSON
+	json, err := json.Marshal(metric)
 	if err != nil {
 		return err
 	}
-	_, err = c.Do("SET", "Release Year", 1984)
+
+	// SET object
+	_, err = c.Do("SET", key, json)
 	if err != nil {
 		return err
 	}
+
 	return nil
 }
 
-// get executes the redis GET command
-func get(c redis.Conn) error {
+func getMetricInCache(c redis.Conn, key string) (err error, metric *DataPoint) {
 
-	// Simple GET example with String helper
-	key := "Favorite Movie"
 	s, err := redis.String(c.Do("GET", key))
-	if err != nil {
-		return (err)
-	}
-	fmt.Printf("%s = %s\n", key, s)
-
-	// Simple GET example with Int helper
-	key = "Release Year"
-	i, err := redis.Int(c.Do("GET", key))
-	if err != nil {
-		return (err)
-	}
-	fmt.Printf("%s = %d\n", key, i)
-
-	// Example where GET returns no results
-	key = "Nonexistent Key"
-	s, err = redis.String(c.Do("GET", key))
 	if err == redis.ErrNil {
-		fmt.Printf("%s does not exist\n", key)
+		fmt.Println("Metric does not exist")
 	} else if err != nil {
-		return err
-	} else {
-		fmt.Printf("%s = %s\n", key, s)
+		return err, metric
 	}
 
-	return nil
+	metric = &DataPoint{}
+	err = json.Unmarshal([]byte(s), metric)
+
+	return err, metric
 }
 
-//
-//func setStruct(c redis.Conn) error {
-//
-//	const objectPrefix string = "user:"
-//
-//	usr := User{
-//		Username:  "otto",
-//		MobileID:  1234567890,
-//		Email:     "ottoM@repoman.com",
-//		FirstName: "Otto",
-//		LastName:  "Maddox",
-//	}
-//
-//	// serialize User object to JSON
-//	json, err := json.Marshal(usr)
-//	if err != nil {
-//		return err
-//	}
-//
-//	// SET object
-//	_, err = c.Do("SET", objectPrefix+usr.Username, json)
-//	if err != nil {
-//		return err
-//	}
-//
-//	return nil
-//}
-//
-//func getStruct(c redis.Conn) error {
-//
-//	const objectPrefix string = "user:"
-//
-//	username := "otto"
-//	s, err := redis.String(c.Do("GET", objectPrefix+username))
-//	if err == redis.ErrNil {
-//		fmt.Println("User does not exist")
-//	} else if err != nil {
-//		return err
-//	}
-//
-//	usr := User{}
-//	err = json.Unmarshal([]byte(s), &usr)
-//
-//	fmt.Printf("%+v\n", usr)
-//
-//	return nil
-//
-//}
 /*
 Store data in redis
 
@@ -354,3 +322,85 @@ Category
 		Date
 			Metrics
 */
+
+func getMetricsBySchool(aString string) []string {
+
+	var data []string
+
+	conn := getRedisConnection()
+	defer conn.Close()
+
+	key := fmt.Sprintf("SCHOOL_%s_DATA", aString)
+	aValues, err := redis.Values(conn.Do("SMEMBERS", key))
+	log.Println(aValues)
+
+	if err != nil {
+		fmt.Println(err)
+	}
+
+	if err := redis.ScanSlice(aValues, &data); err != nil {
+		fmt.Println(err)
+	}
+	return data
+}
+
+func getMetricsByDate(aString string) []string {
+
+	var data []string
+
+	conn := getRedisConnection()
+	defer conn.Close()
+
+	key := fmt.Sprintf("DATE_%s_DATA", aString)
+	aValues, err := redis.Values(conn.Do("SMEMBERS", key))
+	log.Println(aValues)
+
+	if err != nil {
+		fmt.Println(err)
+	}
+
+	if err := redis.ScanSlice(aValues, &data); err != nil {
+		fmt.Println(err)
+	}
+	return data
+}
+
+func getMetricsByCategory(aString string) []string {
+
+	var data []string
+
+	conn := getRedisConnection()
+	defer conn.Close()
+
+	key := fmt.Sprintf("CATEGORY_%s_DATA", aString)
+	aValues, err := redis.Values(conn.Do("SMEMBERS", key))
+	log.Println(aValues)
+
+	if err != nil {
+		fmt.Println(err)
+	}
+
+	if err := redis.ScanSlice(aValues, &data); err != nil {
+		fmt.Println(err)
+	}
+	return data
+}
+
+func getMetric(aString string) {
+
+	conn := getRedisConnection()
+	defer conn.Close()
+
+	key := aString
+	aValues, err := redis.Values(conn.Do("GET", key))
+	log.Println(aValues)
+
+	if err != nil {
+		fmt.Println(err)
+	}
+
+	//
+	//if err := redis.ScanSlice(aValues, &data); err != nil {
+	//	fmt.Println(err)
+	//}
+}
