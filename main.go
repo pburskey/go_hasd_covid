@@ -127,6 +127,10 @@ func main() {
 	api.HandleFunc("/schools", schools).Methods(http.MethodGet)
 	api.HandleFunc("/categories", categories).Methods(http.MethodGet)
 	api.HandleFunc("/dates", dates).Methods(http.MethodGet)
+	api.HandleFunc("/category/{aCategory}/metrics", metricsByCategory).Methods(http.MethodGet)
+	api.HandleFunc("/school/{aSchool}/metrics", metricsBySchool).Methods(http.MethodGet)
+	api.HandleFunc("/date/{aDate}/metrics", metricsByDate).Methods(http.MethodGet)
+	api.HandleFunc("/metric/{aMetric}", metric).Methods(http.MethodGet)
 
 	log.Fatal(http.ListenAndServe(":8080", r))
 }
@@ -318,10 +322,28 @@ func categories(w http.ResponseWriter, r *http.Request) {
 	//
 	//}
 
-	metricData := getMetricsByCategory("Staff")
-	log.Print(metricData)
-
 	json, err := json.Marshal(&data)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+	w.WriteHeader(http.StatusOK)
+	w.Header().Set("Content-Type", "application/json")
+	w.Write(json)
+}
+
+func metricsByCategory(w http.ResponseWriter, r *http.Request) {
+	pathParams := mux.Vars(r)
+	w.Header().Set("Content-Type", "application/json")
+
+	aParam, ok := pathParams["aCategory"]
+	if !ok || len(aParam) == 0 {
+		w.WriteHeader(http.StatusInternalServerError)
+		w.Write([]byte(`{"message": "Category is required"}`))
+		return
+	}
+	metricData := getMetricsByCategory(aParam)
+	json, err := json.Marshal(&metricData)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
@@ -351,10 +373,29 @@ func schools(w http.ResponseWriter, r *http.Request) {
 		fmt.Println(err)
 		return
 	}
-	getMetricInCache(conn, "METRIC:471")
-	metricData := getMetricsBySchool("HES")
-	log.Print(metricData)
+
 	json, err := json.Marshal(&data)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+	w.WriteHeader(http.StatusOK)
+	w.Header().Set("Content-Type", "application/json")
+	w.Write(json)
+}
+
+func metricsBySchool(w http.ResponseWriter, r *http.Request) {
+	pathParams := mux.Vars(r)
+	w.Header().Set("Content-Type", "application/json")
+
+	aParam, ok := pathParams["aSchool"]
+	if !ok || len(aParam) == 0 {
+		w.WriteHeader(http.StatusInternalServerError)
+		w.Write([]byte(`{"message": "School is required"}`))
+		return
+	}
+	metricData := getMetricsBySchool(aParam)
+	json, err := json.Marshal(&metricData)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
@@ -385,17 +426,59 @@ func dates(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	metricData := getMetricsByDate("20201020072916")
-	log.Print(metricData)
-
 	json, err := json.Marshal(&data)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
 
-	getMetric("METRIC:491")
+	w.WriteHeader(http.StatusOK)
+	w.Header().Set("Content-Type", "application/json")
+	w.Write(json)
+}
 
+func metricsByDate(w http.ResponseWriter, r *http.Request) {
+	pathParams := mux.Vars(r)
+	w.Header().Set("Content-Type", "application/json")
+
+	aParam, ok := pathParams["aDate"]
+	if !ok || len(aParam) == 0 {
+		w.WriteHeader(http.StatusInternalServerError)
+		w.Write([]byte(`{"message": "Date as yyyymmddhh24miss is required"}`))
+		return
+	}
+	metricData := getMetricsByDate(aParam)
+	json, err := json.Marshal(&metricData)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+	w.WriteHeader(http.StatusOK)
+	w.Header().Set("Content-Type", "application/json")
+	w.Write(json)
+}
+
+func metric(w http.ResponseWriter, r *http.Request) {
+	pathParams := mux.Vars(r)
+	w.Header().Set("Content-Type", "application/json")
+
+	aParam, ok := pathParams["aMetric"]
+	if !ok || len(aParam) == 0 {
+		w.WriteHeader(http.StatusInternalServerError)
+		w.Write([]byte(`{"message": "Date as yyyymmddhh24miss is required"}`))
+		return
+	}
+	err, metricData := getMetricInCache(aParam)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	json, err := json.Marshal(&metricData)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
 	w.WriteHeader(http.StatusOK)
 	w.Header().Set("Content-Type", "application/json")
 	w.Write(json)

@@ -276,9 +276,12 @@ func setMetricInCache(c redis.Conn, metric *DataPoint, key string) error {
 	return nil
 }
 
-func getMetricInCache(c redis.Conn, key string) (err error, metric *DataPoint) {
+func getMetricInCache(key string) (err error, metric *DataPoint) {
 
-	s, err := redis.String(c.Do("GET", key))
+	conn := getRedisConnection()
+	defer conn.Close()
+
+	s, err := redis.String(conn.Do("GET", key))
 	if err == redis.ErrNil {
 		fmt.Println("Metric does not exist")
 	} else if err != nil {
@@ -384,23 +387,4 @@ func getMetricsByCategory(aString string) []string {
 		fmt.Println(err)
 	}
 	return data
-}
-
-func getMetric(aString string) {
-
-	conn := getRedisConnection()
-	defer conn.Close()
-
-	key := aString
-	aValues, err := redis.Values(conn.Do("GET", key))
-	log.Println(aValues)
-
-	if err != nil {
-		fmt.Println(err)
-	}
-
-	//
-	//if err := redis.ScanSlice(aValues, &data); err != nil {
-	//	fmt.Println(err)
-	//}
 }
