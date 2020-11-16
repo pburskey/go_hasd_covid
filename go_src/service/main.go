@@ -5,6 +5,11 @@ import (
 	"fmt"
 	"github.com/gomodule/redigo/redis"
 	"github.com/gorilla/mux"
+	dao "github.com/pburskey/hasd_covid/dao/redis"
+	"github.com/pburskey/hasd_covid/domain"
+	"github.com/pburskey/hasd_covid/parser"
+	redis_utility "github.com/pburskey/hasd_covid/redis"
+	"github.com/pburskey/hasd_covid/utility"
 	"io/ioutil"
 	"log"
 	"net/http"
@@ -13,9 +18,6 @@ import (
 	"time"
 )
 
-var pool *redis.Pool
-var identityCounter Counter
-
 func main() {
 
 	//
@@ -23,10 +25,9 @@ func main() {
 	//log.Println(identityCounter.next())
 	//log.Println(identityCounter.next())
 
-	pool = newPool()
-	conn := getRedisConnection()
+	conn := redis_utility.GetRedisConnection()
 	defer conn.Close()
-	err := ping(conn)
+	err := redis_utility.Ping(conn)
 	if err != nil {
 		fmt.Println(err)
 	}
@@ -38,20 +39,30 @@ func main() {
 	if err != nil {
 		log.Fatal("Encountered error opening: %s", fileOrDirectory, err)
 	}
+	var counter utility.Counter
+
 	if fileMode.Mode().IsDir() {
 		files, err := ioutil.ReadDir(fileOrDirectory)
 		if err != nil {
 			log.Fatal("Encountered error reading file names in directory: %s", fileOrDirectory, err)
 		}
+
 		for _, aFileName := range files {
 			//fmt.Println(aFileName.Name())
 
 			mungedName := (fileOrDirectory + "/" + aFileName.Name())
-			save(parseCSV(mungedName))
+			var aTime time.Time
+			var aMap map[string]map[string]*domain.CovidMetric
+			aTime, aMap = parser.ParseCSV(mungedName)
+			save(aTime, aMap, &counter)
 		}
 	} else {
 		//log.Print(fileOrDirectory)
-		save(parseCSV(fileOrDirectory))
+
+		var aTime time.Time
+		var aMap map[string]map[string]*domain.CovidMetric
+		aTime, aMap = parser.ParseCSV(fileOrDirectory)
+		save(aTime, aMap, &counter)
 	}
 
 	//
@@ -101,7 +112,7 @@ func main() {
 		return
 	}
 
-	var data []DataPoint
+	var data []domain.DataPoint
 	if err := redis.ScanSlice(values, &data); err != nil {
 		fmt.Println(err)
 		return
@@ -129,89 +140,28 @@ func main() {
 	api.HandleFunc("/dates", dates).Methods(http.MethodGet)
 	api.HandleFunc("/category/{aCategory}/metrics", metricsByCategory).Methods(http.MethodGet)
 	api.HandleFunc("/school/{aSchool}/metrics", metricsBySchool).Methods(http.MethodGet)
+	api.HandleFunc("/school/{aSchool}/category/{aCategory}/metrics", metricsBySchoolAndCategory).Methods(http.MethodGet)
 	api.HandleFunc("/date/{aDate}/metrics", metricsByDate).Methods(http.MethodGet)
 	api.HandleFunc("/metric/{aMetric}", metric).Methods(http.MethodGet)
 
 	log.Fatal(http.ListenAndServe(":8080", r))
 }
 
-func save(aDateAndTime time.Time, dataMap map[string]map[string]*CovidMetric) {
+func save(aDateAndTime time.Time, dataMap map[string]map[string]*domain.CovidMetric, counter *utility.Counter) {
 	if dataMap != nil && len(dataMap) > 0 {
+
 		for organization, schools := range dataMap {
 			//log.Println(organization)
 
 			for schoolName, metric := range schools {
 				//log.Println(schoolName)
 				//log.Println(metric)
-				saveMetric(organization, schoolName, aDateAndTime, metric)
+				dao.SaveMetric(organization, schoolName, aDateAndTime, metric, counter)
 			}
 
 		}
 	}
 
-}
-
-func newPool() *redis.Pool {
-	return &redis.Pool{
-		// Maximum number of idle connections in the pool.
-		MaxIdle: 80,
-		// max number of connections
-		MaxActive: 12000,
-		// Dial is an application supplied function for creating and
-		// configuring a connection.
-		Dial: func() (redis.Conn, error) {
-			c, err := redis.Dial("tcp", ":6379")
-			if err != nil {
-				panic(err.Error())
-			}
-			return c, err
-		},
-	}
-}
-
-// ping tests connectivity for redis (PONG should be returned)
-func ping(c redis.Conn) error {
-	// Send PING command to Redis
-	pong, err := c.Do("PING")
-	if err != nil {
-		return err
-	}
-
-	// PING command returns a Redis "Simple String"
-	// Use redis.String to convert the interface type to string
-	s, err := redis.String(pong, err)
-	if err != nil {
-		return err
-	}
-
-	fmt.Printf("PING Response = %s\n", s)
-	// Output: PONG
-
-	return nil
-}
-
-type HASDCovidMetric struct {
-	id          uint
-	category    string
-	school      string
-	dateAndTime time.Time
-	metric      *CovidMetric
-}
-
-func getRedisConnection() redis.Conn {
-	return pool.Get()
-}
-
-type Counter struct {
-	id uint
-}
-
-func (c *Counter) next() *Counter {
-	c.id = c.id + 1
-	return c
-}
-func (c *Counter) nextId() uint {
-	return (*c).next().id
 }
 
 type server struct{}
@@ -277,41 +227,10 @@ func params(w http.ResponseWriter, r *http.Request) {
 	w.Write([]byte(fmt.Sprintf(`{"userID": %d, "commentID": %d, "location": "%s" }`, userID, commentID, location)))
 }
 
-func cacheKeyExists(aKey string) (exists bool) {
-	conn := getRedisConnection()
-	defer conn.Close()
-	var aValue int64
-
-	aValue, err := redis.Int64(conn.Do("EXISTS", aKey))
-
-	if err != nil {
-		fmt.Println(err)
-		return
-	}
-	exists = (aValue != 0)
-	return
-}
-
 func categories(w http.ResponseWriter, r *http.Request) {
 
 	w.Header().Set("Content-Type", "application/json")
 
-	conn := getRedisConnection()
-	defer conn.Close()
-
-	aValues, err := redis.Values(conn.Do("SMEMBERS", "CATEGORIES"))
-	log.Println(aValues)
-
-	if err != nil {
-		fmt.Println(err)
-		return
-	}
-
-	var data []string
-	if err := redis.ScanSlice(aValues, &data); err != nil {
-		fmt.Println(err)
-		return
-	}
 	//for len(aValues) > 0 {
 	//	var aString string
 	//	values, err = redis.Scan(values, &aString)
@@ -321,6 +240,12 @@ func categories(w http.ResponseWriter, r *http.Request) {
 	//	}
 	//
 	//}
+
+	data, err := dao.GetCategories()
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
 
 	json, err := json.Marshal(&data)
 	if err != nil {
@@ -342,7 +267,7 @@ func metricsByCategory(w http.ResponseWriter, r *http.Request) {
 		w.Write([]byte(`{"message": "Category is required"}`))
 		return
 	}
-	metricData := getMetricsByCategory(aParam)
+	metricData := dao.GetMetricsByCategory(aParam)
 	json, err := json.Marshal(&metricData)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
@@ -357,23 +282,11 @@ func schools(w http.ResponseWriter, r *http.Request) {
 
 	w.Header().Set("Content-Type", "application/json")
 
-	conn := getRedisConnection()
-	defer conn.Close()
-
-	aValues, err := redis.Values(conn.Do("SMEMBERS", "SCHOOLS"))
-	log.Println(aValues)
-
+	data, err := dao.GetSchools()
 	if err != nil {
-		fmt.Println(err)
+		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
-
-	var data []string
-	if err := redis.ScanSlice(aValues, &data); err != nil {
-		fmt.Println(err)
-		return
-	}
-
 	json, err := json.Marshal(&data)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
@@ -394,7 +307,37 @@ func metricsBySchool(w http.ResponseWriter, r *http.Request) {
 		w.Write([]byte(`{"message": "School is required"}`))
 		return
 	}
-	metricData := getMetricsBySchool(aParam)
+	metricData := dao.GetMetricsBySchool(aParam)
+	json, err := json.Marshal(&metricData)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+	w.WriteHeader(http.StatusOK)
+	w.Header().Set("Content-Type", "application/json")
+	w.Write(json)
+}
+
+func metricsBySchoolAndCategory(w http.ResponseWriter, r *http.Request) {
+	pathParams := mux.Vars(r)
+	w.Header().Set("Content-Type", "application/json")
+
+	aSchool, ok := pathParams["aSchool"]
+
+	if !ok || len(aSchool) == 0 {
+		w.WriteHeader(http.StatusInternalServerError)
+		w.Write([]byte(`{"message": "School is required", "message": "Category is required"}`))
+		return
+	}
+
+	aCategory, ok := pathParams["aCategory"]
+	if !ok || len(aCategory) == 0 {
+		w.WriteHeader(http.StatusInternalServerError)
+		w.Write([]byte(`{"message": "School is required", "message": "Category is required"}`))
+		return
+	}
+
+	metricData := dao.GetMetricsBySchoolAndCategory(aSchool, aCategory)
 	json, err := json.Marshal(&metricData)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
@@ -409,20 +352,9 @@ func dates(w http.ResponseWriter, r *http.Request) {
 
 	w.Header().Set("Content-Type", "application/json")
 
-	conn := getRedisConnection()
-	defer conn.Close()
-
-	aValues, err := redis.Values(conn.Do("SMEMBERS", "DATES"))
-	log.Println(aValues)
-
+	data, err := dao.GetDates()
 	if err != nil {
-		fmt.Println(err)
-		return
-	}
-
-	var data []string
-	if err := redis.ScanSlice(aValues, &data); err != nil {
-		fmt.Println(err)
+		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
 
@@ -447,7 +379,7 @@ func metricsByDate(w http.ResponseWriter, r *http.Request) {
 		w.Write([]byte(`{"message": "Date as yyyymmddhh24miss is required"}`))
 		return
 	}
-	metricData := getMetricsByDate(aParam)
+	metricData := dao.GetMetricsByDate(aParam)
 	json, err := json.Marshal(&metricData)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
@@ -468,7 +400,7 @@ func metric(w http.ResponseWriter, r *http.Request) {
 		w.Write([]byte(`{"message": "Date as yyyymmddhh24miss is required"}`))
 		return
 	}
-	err, metricData := getMetricInCache(aParam)
+	err, metricData := dao.GetMetricInCache(aParam)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return

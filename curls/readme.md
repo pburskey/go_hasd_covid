@@ -7,3 +7,4 @@ curl --request GET localhost:8080/api/v1/school/HES/metrics
 curl --request GET localhost:8080/api/v1/date/20201021104718/metrics
 
 curl --request GET localhost:8080/api/v1/metric/METRIC:313
+

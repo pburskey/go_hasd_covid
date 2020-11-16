@@ -1,6 +1,6 @@
-package main
+package utility
 
-func sliceRangeContainsOnlyEmpties(aSlice []string) bool {
+func SliceRangeContainsOnlyEmpties(aSlice []string) bool {
 	if aSlice == nil || len(aSlice) == 0 {
 		return false
 	}
@@ -15,7 +15,7 @@ func sliceRangeContainsOnlyEmpties(aSlice []string) bool {
 	return hasEmpty
 }
 
-func sliceRangeContainsNonEmptyValue(aSlice []string) bool {
+func SliceRangeContainsNonEmptyValue(aSlice []string) bool {
 	if aSlice == nil || len(aSlice) == 0 {
 		return false
 	}
@@ -32,7 +32,7 @@ func sliceRangeContainsNonEmptyValue(aSlice []string) bool {
 	return itDoes
 }
 
-func countEmptyValuesIn(aSlice []string) int {
+func CountEmptyValuesIn(aSlice []string) int {
 	if aSlice == nil || len(aSlice) == 0 {
 		return 0
 	}
@@ -47,7 +47,7 @@ func countEmptyValuesIn(aSlice []string) int {
 	return count
 }
 
-func countNonEmptyValuesIn(aSlice []string) int {
+func CountNonEmptyValuesIn(aSlice []string) int {
 	if aSlice == nil || len(aSlice) == 0 {
 		return 0
 	}

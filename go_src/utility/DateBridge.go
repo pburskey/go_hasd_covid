@@ -1,4 +1,4 @@
-package main
+package utility
 
 import (
 	"time"
@@ -12,13 +12,13 @@ import (
 //	fmt.Print(parseYYYYMMDDHH24MiSS("20200929130339"))
 //}
 
-func parseYYYYMMDDHH24MiSS(aDateAsString string) (aTime time.Time, err error) {
+func ParseYYYYMMDDHH24MiSS(aDateAsString string) (aTime time.Time, err error) {
 	//	Mon Jan 2 15:04:05 -0700 MST 2006
 	aTime, err = time.Parse("20060102150405", aDateAsString)
 	return aTime, err
 }
 
-func asYYYYMMDDHH24MiSS(aTime time.Time) (aDateAsString string) {
+func AsYYYYMMDDHH24MiSS(aTime time.Time) (aDateAsString string) {
 	//	Mon Jan 2 15:04:05 -0700 MST 2006
 	aDateAsString = aTime.Format("20060102150405")
 	return aDateAsString
