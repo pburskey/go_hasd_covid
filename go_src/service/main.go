@@ -3,7 +3,6 @@ package main
 import (
 	"encoding/json"
 	"fmt"
-	"github.com/gomodule/redigo/redis"
 	"github.com/gorilla/mux"
 	dao "github.com/pburskey/hasd_covid/dao/redis"
 	"github.com/pburskey/hasd_covid/domain"
@@ -81,51 +80,51 @@ func main() {
 	//fmt.Printf("Number of Empties: %s\n", countEmptyValuesIn(aSlice))
 	//fmt.Printf("Number of Non Empty values: %s\n", countNonEmptyValuesIn(aSlice))
 
-	aValue, err := redis.Values(conn.Do("SMEMBERS", "SCHOOLS"))
-	log.Println(aValue)
+	//aValue, err := redis.Values(conn.Do("SMEMBERS", "SCHOOLS"))
+	//log.Println(aValue)
 
-	/*
-	   prints out all keys
-	*/
-	keys, err := redis.Strings(conn.Do("KEYS", "*"))
-	if err != nil {
-		// handle error
-	}
-	for _, key := range keys {
-		fmt.Println(key)
-	}
-
-	values, err := redis.Values(conn.Do("SORT", "METRICS",
-		//"BY", "METRIC:*->category",
-		//"BY", "METRIC:*->school",
-		//"BY", "METRIC:*->dateTime",
-		"GET", "METRIC:->category",
-		"GET", "METRIC:->school",
-		"GET", "METRIC:->dateTime",
-		"GET", "METRIC:->ActiveCases",
-		"GET", "METRIC:->TotalPositiveCases",
-		"GET", "METRIC:->ProbableCases",
-		"GET", "METRIC:->ResolvedCases"))
-
-	if err != nil {
-		fmt.Println(err)
-		return
-	}
-
-	var data []domain.DataPoint
-	if err := redis.ScanSlice(values, &data); err != nil {
-		fmt.Println(err)
-		return
-	}
-	for len(values) > 0 {
-		var aString string
-		values, err = redis.Scan(values, &aString)
-		if err != nil {
-			fmt.Println(err)
-			return
-		}
-
-	}
+	///*
+	//   prints out all keys
+	//*/
+	//keys, err := redis.Strings(conn.Do("KEYS", "*"))
+	//if err != nil {
+	//	// handle error
+	//}
+	//for _, key := range keys {
+	//	fmt.Println(key)
+	//}
+	//
+	//values, err := redis.Values(conn.Do("SORT", "METRICS",
+	//	//"BY", "METRIC:*->category",
+	//	//"BY", "METRIC:*->school",
+	//	//"BY", "METRIC:*->dateTime",
+	//	"GET", "METRIC:->category",
+	//	"GET", "METRIC:->school",
+	//	"GET", "METRIC:->dateTime",
+	//	"GET", "METRIC:->ActiveCases",
+	//	"GET", "METRIC:->TotalPositiveCases",
+	//	"GET", "METRIC:->ProbableCases",
+	//	"GET", "METRIC:->ResolvedCases"))
+	//
+	//if err != nil {
+	//	fmt.Println(err)
+	//	return
+	//}
+	//
+	//var data []domain.DataPoint
+	//if err := redis.ScanSlice(values, &data); err != nil {
+	//	fmt.Println(err)
+	//	return
+	//}
+	//for len(values) > 0 {
+	//	var aString string
+	//	values, err = redis.Scan(values, &aString)
+	//	if err != nil {
+	//		fmt.Println(err)
+	//		return
+	//	}
+	//
+	//}
 	r := mux.NewRouter()
 
 	api := r.PathPrefix("/api/v1").Subrouter()

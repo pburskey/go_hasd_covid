@@ -3,7 +3,9 @@ package main
 import (
 	"encoding/json"
 	"fmt"
+	"github.com/olekukonko/tablewriter"
 	"github.com/pburskey/hasd_covid/domain"
+	"github.com/pburskey/hasd_covid/utility"
 	"io/ioutil"
 	"log"
 	"net/http"
@@ -13,8 +15,9 @@ import (
 
 func main() {
 
-	school := "HES"
+	school := "HMS-FWA"
 	category := "Students"
+
 	var schoolMetrics []string = getMetricsForSchoolAndCategory(school, category)
 
 	details := make([]domain.DataPoint, 0)
@@ -28,10 +31,58 @@ func main() {
 		return details[i].DateTime.Before(details[j].DateTime)
 	})
 
-	for _, metric := range details {
-		log.Println(fmt.Sprintf("\t\tDate:%s\t\tActiveCases: %d\tTotalPositiveCases: %d\tProbableCases: %d\tResolvedCases: %d", metric.DateTime, metric.Metric.ActiveCases, metric.Metric.TotalPositiveCases, metric.Metric.ProbableCases, metric.Metric.ResolvedCases))
+	var lastMetric domain.DataPoint
 
+	reportData := make([][]string, 0)
+	for _, currentMetric := range details {
+
+		sign := " "
+		signDeterminationFunction := func(a int, b int, skip bool) string {
+			sign := " "
+			if !skip {
+				if a > b {
+					sign = "+"
+				} else if a < b {
+					sign = "-"
+				} else {
+					sign = " "
+				}
+			}
+
+			return sign
+		}
+
+		row := make([]string, 0)
+		row = append(row, utility.AsYYYY_MM_DD_HH24(currentMetric.DateTime))
+
+		skip := lastMetric.Id == 0
+		sign = signDeterminationFunction(currentMetric.Metric.ActiveCases, lastMetric.Metric.ActiveCases, skip)
+		activeCases := fmt.Sprintf("%s %d", sign, currentMetric.Metric.ActiveCases)
+		row = append(row, activeCases)
+
+		sign = signDeterminationFunction(currentMetric.Metric.TotalPositiveCases, lastMetric.Metric.TotalPositiveCases, skip)
+		totalPositiveCases := fmt.Sprintf("%s %d", sign, currentMetric.Metric.TotalPositiveCases)
+		row = append(row, totalPositiveCases)
+
+		sign = signDeterminationFunction(currentMetric.Metric.ProbableCases, lastMetric.Metric.ProbableCases, skip)
+		probableCases := fmt.Sprintf("%s %d", sign, currentMetric.Metric.ProbableCases)
+		row = append(row, probableCases)
+
+		sign = signDeterminationFunction(currentMetric.Metric.ResolvedCases, lastMetric.Metric.ResolvedCases, skip)
+		resolvedCases := fmt.Sprintf("%s %d", sign, currentMetric.Metric.ResolvedCases)
+		row = append(row, resolvedCases)
+
+		reportData = append(reportData, row)
+		//log.Println(fmt.Sprintf("\t\tDate:%s\tActiveCases: %s\t\tTotalPositiveCases: %s\t\tProbableCases: %s\t\tResolvedCases: %s", currentMetric.DateTime, activeCases, totalPositiveCases, probableCases, resolvedCases))
+
+		lastMetric = currentMetric
 	}
+
+	table := tablewriter.NewWriter(os.Stdout)
+	table.SetHeader([]string{"Date", "ActiveCases", "TotalPositiveCases", "ProbableCases", "ResolvedCases"})
+	table.SetBorder(false)       // Set Border to false
+	table.AppendBulk(reportData) // Add Bulk Data
+	table.Render()
 
 }
 

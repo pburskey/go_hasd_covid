@@ -23,3 +23,9 @@ func AsYYYYMMDDHH24MiSS(aTime time.Time) (aDateAsString string) {
 	aDateAsString = aTime.Format("20060102150405")
 	return aDateAsString
 }
+
+func AsYYYY_MM_DD_HH24(aTime time.Time) (aDateAsString string) {
+	//	Mon Jan 2 15:04:05 -0700 MST 2006
+	aDateAsString = aTime.Format("2006-01-02 15")
+	return aDateAsString
+}
