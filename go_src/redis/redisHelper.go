@@ -1,8 +1,8 @@
 package redis
 
 import (
-	"fmt"
 	"github.com/gomodule/redigo/redis"
+	"log"
 )
 
 var pool *redis.Pool
@@ -36,11 +36,11 @@ func Ping(c redis.Conn) error {
 	// PING command returns a Redis "Simple String"
 	// Use redis.String to convert the interface type to string
 	s, err := redis.String(pong, err)
-	if err != nil {
+	if err != nil || s != "OK" {
 		return err
 	}
-
-	fmt.Printf("PING Response = %s\n", s)
+	//
+	//fmt.Printf("PING Response = %s\n", s)
 	// Output: PONG
 
 	return nil
@@ -54,7 +54,7 @@ func GetRedisConnection() redis.Conn {
 		defer conn.Close()
 		err := Ping(conn)
 		if err != nil {
-			fmt.Println(err)
+			log.Fatal(err)
 		}
 	}
 	return pool.Get()
@@ -68,7 +68,7 @@ func CacheKeyExists(aKey string) (exists bool) {
 	aValue, err := redis.Int64(conn.Do("EXISTS", aKey))
 
 	if err != nil {
-		fmt.Println(err)
+		log.Fatal(err)
 		return
 	}
 	exists = (aValue != 0)

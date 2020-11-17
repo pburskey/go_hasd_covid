@@ -81,9 +81,9 @@ func ParseCSV(fileName string) (time.Time, map[string]map[string]*domain.CovidMe
 	//log.Println(dataMap)
 
 	aCacheSetResult, err := conn.Do("SET", key, dataMap)
-	log.Print(aCacheSetResult)
+	//log.Print(aCacheSetResult)
 	if err != nil || aCacheSetResult != "OK" {
-		fmt.Println(err)
+		log.Fatal(err)
 	}
 
 	return aTime, dataMap

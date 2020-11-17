@@ -20,14 +20,13 @@ func GetMetricsBySchool(aString string) []string {
 
 	key := fmt.Sprintf("SCHOOL_%s_DATA", aString)
 	aValues, err := redis.Values(conn.Do("SMEMBERS", key))
-	log.Println(aValues)
 
 	if err != nil {
-		fmt.Println(err)
+		log.Fatal(err)
 	}
 
 	if err := redis.ScanSlice(aValues, &data); err != nil {
-		fmt.Println(err)
+		log.Fatal(err)
 	}
 	return data
 }
@@ -41,14 +40,13 @@ func GetMetricsBySchoolAndCategory(aSchool string, aCategory string) []string {
 
 	key := fmt.Sprintf("SCHOOL_%s_CATEGORY_%s_DATA", aSchool, aCategory)
 	aValues, err := redis.Values(conn.Do("SMEMBERS", key))
-	log.Println(aValues)
 
 	if err != nil {
-		fmt.Println(err)
+		log.Fatal(err)
 	}
 
 	if err := redis.ScanSlice(aValues, &data); err != nil {
-		fmt.Println(err)
+		log.Fatal(err)
 	}
 	return data
 }
@@ -62,14 +60,13 @@ func GetMetricsByDate(aString string) []string {
 
 	key := fmt.Sprintf("DATE_%s_DATA", aString)
 	aValues, err := redis.Values(conn.Do("SMEMBERS", key))
-	log.Println(aValues)
 
 	if err != nil {
-		fmt.Println(err)
+		log.Fatal(err)
 	}
 
 	if err := redis.ScanSlice(aValues, &data); err != nil {
-		fmt.Println(err)
+		log.Fatal(err)
 	}
 	return data
 }
@@ -83,14 +80,13 @@ func GetMetricsByCategory(aString string) []string {
 
 	key := fmt.Sprintf("CATEGORY_%s_DATA", aString)
 	aValues, err := redis.Values(conn.Do("SMEMBERS", key))
-	log.Println(aValues)
 
 	if err != nil {
-		fmt.Println(err)
+		log.Fatal(err)
 	}
 
 	if err := redis.ScanSlice(aValues, &data); err != nil {
-		fmt.Println(err)
+		log.Fatal(err)
 	}
 	return data
 }
@@ -119,7 +115,7 @@ func GetMetricInCache(key string) (err error, metric *domain.DataPoint) {
 
 	s, err := redis.String(conn.Do("GET", key))
 	if err == redis.ErrNil {
-		fmt.Println("Metric does not exist")
+		log.Fatal("Metric does not exist")
 	} else if err != nil {
 		return err, metric
 	}
@@ -217,14 +213,13 @@ func GetDates() (data []string, err error) {
 	defer conn.Close()
 
 	aValues, err := redis.Values(conn.Do("SMEMBERS", "DATES"))
-	log.Println(aValues)
 
 	if err != nil {
-		fmt.Println(err)
+		log.Fatal(err)
 	}
 
 	if err := redis.ScanSlice(aValues, &data); err != nil {
-		fmt.Println(err)
+		log.Fatal(err)
 	}
 	return
 }
@@ -235,14 +230,13 @@ func GetCategories() (data []string, err error) {
 	defer conn.Close()
 
 	aValues, err := redis.Values(conn.Do("SMEMBERS", "CATEGORIES"))
-	log.Println(aValues)
 
 	if err != nil {
-		fmt.Println(err)
+		log.Fatal(err)
 	}
 
 	if err := redis.ScanSlice(aValues, &data); err != nil {
-		fmt.Println(err)
+		log.Fatal(err)
 	}
 	return
 }
@@ -253,14 +247,13 @@ func GetSchools() (data []string, err error) {
 	defer conn.Close()
 
 	aValues, err := redis.Values(conn.Do("SMEMBERS", "SCHOOLS"))
-	log.Println(aValues)
 
 	if err != nil {
-		fmt.Println(err)
+		log.Fatal(err)
 	}
 
 	if err := redis.ScanSlice(aValues, &data); err != nil {
-		fmt.Println(err)
+		log.Fatal(err)
 	}
 	return
 }
