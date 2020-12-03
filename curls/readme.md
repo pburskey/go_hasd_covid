@@ -21,6 +21,6 @@ localhost:8080/api/v1/school/HES/category/Students/metrics \
 
 
 curl -ivk \
-localhost:8080/api/v1/school/HES/category/Students/metricDetails \
+http://localhost:8080/api/v1/school/HES/category/Students/metricDetails \
 -H "Content-Type: application/json" \
 -X GET

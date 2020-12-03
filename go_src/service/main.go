@@ -3,6 +3,7 @@ package main
 import (
 	"encoding/json"
 	"fmt"
+	"github.com/gorilla/handlers"
 	"github.com/gorilla/mux"
 	dao "github.com/pburskey/hasd_covid/dao/redis"
 	"github.com/pburskey/hasd_covid/domain"
@@ -127,6 +128,7 @@ func main() {
 	//
 	//}
 	r := mux.NewRouter()
+	r.Use(CORS)
 
 	api := r.PathPrefix("/api/v1").Subrouter()
 	api.HandleFunc("", get).Methods(http.MethodGet)
@@ -146,7 +148,15 @@ func main() {
 	api.HandleFunc("/date/{aDate}/metrics", metricsByDate).Methods(http.MethodGet)
 	api.HandleFunc("/metric/{aMetric}", metric).Methods(http.MethodGet)
 
-	log.Fatal(http.ListenAndServe(":8080", r))
+	cors := handlers.CORS(
+		handlers.AllowedHeaders([]string{"content-type"}),
+		handlers.AllowedOrigins([]string{"*"}),
+		handlers.AllowCredentials(),
+	)
+	cors(r)
+	//log.Fatal(http.ListenAndServe(":8080", r))
+	http.ListenAndServe(":8080", setHeaders(r))
+
 }
 
 func save(aDateAndTime time.Time, dataMap map[string]map[string]*domain.CovidMetric, counter *utility.Counter) {
@@ -464,4 +474,69 @@ func metric(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusOK)
 	w.Header().Set("Content-Type", "application/json")
 	w.Write(json)
+}
+func setupResponse(w *http.ResponseWriter, req *http.Request) {
+	(*w).Header().Set("Access-Control-Allow-Origin", "*")
+	(*w).Header().Set("Access-Control-Allow-Methods", "POST, GET, OPTIONS, PUT, DELETE")
+	(*w).Header().Set("Access-Control-Allow-Headers", "Accept, Content-Type, Content-Length, Accept-Encoding, X-CSRF-Token, Authorization")
+}
+
+func indexHandler(w http.ResponseWriter, req *http.Request) {
+	setupResponse(&w, req)
+	if (*req).Method == "OPTIONS" {
+		return
+	}
+
+	// process the request...
+}
+
+func handler(w http.ResponseWriter, req *http.Request) {
+	// ...
+	enableCors(&w)
+	// ...
+}
+
+func enableCors(w *http.ResponseWriter) {
+	(*w).Header().Set("Access-Control-Allow-Origin", "*")
+}
+
+func CORS(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+
+		// Set headers
+		w.Header().Set("Access-Control-Allow-Headers:", "*")
+		w.Header().Set("Access-Control-Allow-Origin", "*")
+		w.Header().Set("Access-Control-Allow-Methods", "*")
+
+		if r.Method == "OPTIONS" {
+			w.WriteHeader(http.StatusOK)
+			return
+		}
+
+		fmt.Println("ok")
+
+		// Next
+		next.ServeHTTP(w, r)
+		return
+	})
+}
+
+func setHeaders(h http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		//anyone can make a CORS request (not recommended in production)
+		w.Header().Set("Access-Control-Allow-Origin", "*")
+		//only allow GET, POST, and OPTIONS
+		w.Header().Set("Access-Control-Allow-Methods", "GET, POST, OPTIONS")
+		//Since I was building a REST API that returned JSON, I set the content type to JSON here.
+		w.Header().Set("Content-Type", "application/json")
+		//Allow requests to have the following headers
+		w.Header().Set("Access-Control-Allow-Headers", "Origin, Content-Type, Authorization, cache-control")
+		//if it's just an OPTIONS request, nothing other than the headers in the response is needed.
+		//This is essential because you don't need to handle the OPTIONS requests in your handlers now
+		if r.Method == "OPTIONS" {
+			return
+		}
+
+		h.ServeHTTP(w, r)
+	})
 }
