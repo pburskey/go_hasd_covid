@@ -13,6 +13,7 @@ import (
 	"log"
 	"net/http"
 	"os"
+	"sort"
 	"strconv"
 	"time"
 )
@@ -140,6 +141,8 @@ func main() {
 	api.HandleFunc("/category/{aCategory}/metrics", metricsByCategory).Methods(http.MethodGet)
 	api.HandleFunc("/school/{aSchool}/metrics", metricsBySchool).Methods(http.MethodGet)
 	api.HandleFunc("/school/{aSchool}/category/{aCategory}/metrics", metricsBySchoolAndCategory).Methods(http.MethodGet)
+	api.HandleFunc("/school/{aSchool}/category/{aCategory}/metricDetails", metricDetailsBySchoolAndCategory).Methods(http.MethodGet)
+
 	api.HandleFunc("/date/{aDate}/metrics", metricsByDate).Methods(http.MethodGet)
 	api.HandleFunc("/metric/{aMetric}", metric).Methods(http.MethodGet)
 
@@ -300,6 +303,11 @@ func metricsBySchool(w http.ResponseWriter, r *http.Request) {
 	pathParams := mux.Vars(r)
 	w.Header().Set("Content-Type", "application/json")
 
+	//aHeaderValue := r.Header.Get("resolve-metric-detail")
+	//var resolveMetricDetail bool
+	//if len(aHeaderValue) > 0 && aHeaderValue == "1"{
+	//	resolveMetricDetail = true
+	//}
 	aParam, ok := pathParams["aSchool"]
 	if !ok || len(aParam) == 0 {
 		w.WriteHeader(http.StatusInternalServerError)
@@ -342,6 +350,49 @@ func metricsBySchoolAndCategory(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
+	w.WriteHeader(http.StatusOK)
+	w.Header().Set("Content-Type", "application/json")
+	w.Write(json)
+}
+
+func metricDetailsBySchoolAndCategory(w http.ResponseWriter, r *http.Request) {
+	pathParams := mux.Vars(r)
+	w.Header().Set("Content-Type", "application/json")
+
+	aSchool, ok := pathParams["aSchool"]
+
+	if !ok || len(aSchool) == 0 {
+		w.WriteHeader(http.StatusInternalServerError)
+		w.Write([]byte(`{"message": "School is required", "message": "Category is required"}`))
+		return
+	}
+
+	aCategory, ok := pathParams["aCategory"]
+	if !ok || len(aCategory) == 0 {
+		w.WriteHeader(http.StatusInternalServerError)
+		w.Write([]byte(`{"message": "School is required", "message": "Category is required"}`))
+		return
+	}
+
+	metricData := dao.GetMetricsBySchoolAndCategory(aSchool, aCategory)
+
+	details := make([]*domain.DataPoint, 0)
+
+	for _, metric := range metricData {
+		_, detail := dao.GetMetric(metric)
+		details = append(details, detail)
+	}
+
+	sort.Slice(details, func(i int, j int) bool {
+		return details[i].DateTime.Before(details[j].DateTime)
+	})
+
+	json, err := json.Marshal(&details)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
 	w.WriteHeader(http.StatusOK)
 	w.Header().Set("Content-Type", "application/json")
 	w.Write(json)
@@ -399,7 +450,7 @@ func metric(w http.ResponseWriter, r *http.Request) {
 		w.Write([]byte(`{"message": "Date as yyyymmddhh24miss is required"}`))
 		return
 	}
-	err, metricData := dao.GetMetricInCache(aParam)
+	err, metricData := dao.GetMetric(aParam)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return

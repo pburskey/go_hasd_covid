@@ -41,16 +41,31 @@ HTML_data = soup.find_all("tbody")[0].find_all("tr")
 for element in HTML_data:
     sub_data = []
     for sub_element in element:
-        try:
-            text = sub_element.get_text()
-            if text == ' ':
-                text = ''
-            elif text == '-':
-                text = '0'
+        if sub_element != '\n':
 
-            sub_data.append(text)
-        except:
-            continue
+            try:
+                text = sub_element.get_text()
+                text = text.rstrip('\n')
+                text = text.lstrip('\n')
+                if text == ' ':
+                    text = ''
+                elif text == '-':
+                    text = '0'
+                elif text.isdigit():
+                    text = text
+                elif text.isalnum():
+                    text = text
+                elif len(text) > 3:
+                    text = text
+                else:
+                    alphanumeric_filter = filter(str.isalnum, text)
+                    alphanumeric_string = "".join(alphanumeric_filter)
+                    text = alphanumeric_string
+
+                sub_data.append(text)
+            except:
+                raise
+
     data.append(sub_data)
 
 # Storing the data into Pandas

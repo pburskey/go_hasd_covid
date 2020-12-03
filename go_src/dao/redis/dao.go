@@ -108,7 +108,11 @@ func setMetricInCache(c redis.Conn, metric *domain.DataPoint, key string) error 
 	return nil
 }
 
-func GetMetricInCache(key string) (err error, metric *domain.DataPoint) {
+func GetMetric(key string) (err error, metric *domain.DataPoint) {
+	return getMetricInCache(key)
+}
+
+func getMetricInCache(key string) (err error, metric *domain.DataPoint) {
 
 	conn := redis_utility.GetRedisConnection()
 	defer conn.Close()
