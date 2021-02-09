@@ -20,4 +20,10 @@ sudo apt-get install docker-ce docker-ce-cli containerd.io
 
 #sudo snap install docker
 
-sudo docker run hello-world
+sudo groupadd docker
+sudo usermod -aG docker ${USER}
+
+su -s ${USER}
+docker run hello-world
+
+sudo chmod 666 /var/run/docker.sock

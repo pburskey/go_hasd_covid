@@ -3,6 +3,10 @@ from datetime import datetime
 import json
 import requests
 import pandas as pd
+import sys
+import os
+
+os.chdir(os.path.dirname(sys.argv[0]))
 
 # coding=utf-8
 page = requests.get("https://www.hasd.org/community/covid-19-daily-updates.cfm")
@@ -71,6 +75,7 @@ for element in HTML_data:
 # Storing the data into Pandas
 # DataFrame
 dataFrame = pd.DataFrame(data = data, columns = list_header)
+
 
 
 now = datetime.today().strftime('%Y%m%d%H%M%S')
