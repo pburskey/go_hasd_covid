@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 from bs4 import BeautifulSoup
 from datetime import datetime
 import json
@@ -25,19 +26,19 @@ data = []
 # the HTML file
 list_header = []
 soup = tableToParse
-header = soup.find_all("tbody")[0].find("tr")
+header = soup.find_all("thead")[0].find("tr")
 
-# for element in header:
-#     try:
-#         text = element.get_text()
-#         if text == ' ':
-#             text = ''
-#         elif text == '-':
-#             text = '0'
-#
-#         list_header.append(text)
-#     except:
-#         continue
+for items in header:
+    try:
+        text = items.get_text()
+        if text == ' ':
+            text = ''
+        elif text == '-':
+            text = '0'
+
+        list_header.append(text)
+    except:
+        continue
 
 # for getting the data
 HTML_data = soup.find_all("tbody")[0].find_all("tr")
@@ -71,7 +72,6 @@ for element in HTML_data:
                 raise
 
     data.append(sub_data)
-list_header = data.pop(0)
 
 # Storing the data into Pandas
 # DataFrame
