@@ -15,12 +15,17 @@ import (
 
 func main() {
 
-	school := "HMS-FWA"
-	category := "Students"
+	arguments := os.Args
+	if len(arguments) != 3 {
+		log.Fatalln("School and Category arguments are required")
+	}
+
+	school := arguments[1]
+	category := arguments[2]
 
 	var schoolMetrics []string = getMetricsForSchoolAndCategory(school, category)
 
-	details := make([]domain.DataPoint, 0)
+	details := make([]domain.RawDataPoint, 0)
 
 	for _, metric := range schoolMetrics {
 		metricDetailJson := getMetricsDetail(metric)
@@ -31,7 +36,7 @@ func main() {
 		return details[i].DateTime.Before(details[j].DateTime)
 	})
 
-	var lastMetric domain.DataPoint
+	var lastMetric domain.RawDataPoint
 
 	reportData := make([][]string, 0)
 	for _, currentMetric := range details {
@@ -108,7 +113,7 @@ func getMetricsForSchoolAndCategory(school string, category string) []string {
 
 }
 
-func getMetricsDetail(aMetricKey string) domain.DataPoint {
+func getMetricsDetail(aMetricKey string) domain.RawDataPoint {
 
 	uri := fmt.Sprintf("http://127.0.0.1:8080/api/v1/metric/%s", aMetricKey)
 	response, err := http.Get(uri)
@@ -123,7 +128,7 @@ func getMetricsDetail(aMetricKey string) domain.DataPoint {
 		os.Exit(2)
 	}
 
-	var responseObject domain.DataPoint
+	var responseObject domain.RawDataPoint
 	json.Unmarshal(responseData, &responseObject)
 
 	return responseObject

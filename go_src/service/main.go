@@ -19,20 +19,14 @@ import (
 	"time"
 )
 
+var daoImpl *dao.DAO
+
 func main() {
 
-	//
-	//log.Println(identityCounter.next())
-	//log.Println(identityCounter.next())
-	//log.Println(identityCounter.next())
+	config := utility.LoadConfiguration()
 
-	conn := redis_utility.GetRedisConnection()
-	defer conn.Close()
-	err := redis_utility.Ping(conn)
-	if err != nil {
-		fmt.Println(err)
-	}
-
+	redisConnection := redis_utility.Factory(config.Redis)
+	daoImpl = dao.Factory(redisConnection)
 	arguments := os.Args[1:]
 	var fileOrDirectory string = arguments[0] //"sample_data.csv"
 
@@ -54,16 +48,16 @@ func main() {
 			mungedName := (fileOrDirectory + "/" + aFileName.Name())
 			var aTime time.Time
 			var aMap map[string]map[string]*domain.CovidMetric
-			aTime, aMap = parser.ParseCSV(mungedName)
-			save(aTime, aMap, &counter)
+			aTime, aMap = parser.ParseCSV(mungedName, redisConnection)
+			save(aTime, aMap, &counter, daoImpl)
 		}
 	} else {
 		//log.Print(fileOrDirectory)
 
 		var aTime time.Time
 		var aMap map[string]map[string]*domain.CovidMetric
-		aTime, aMap = parser.ParseCSV(fileOrDirectory)
-		save(aTime, aMap, &counter)
+		aTime, aMap = parser.ParseCSV(fileOrDirectory, redisConnection)
+		save(aTime, aMap, &counter, daoImpl)
 	}
 
 	//
@@ -113,7 +107,7 @@ func main() {
 	//	return
 	//}
 	//
-	//var data []domain.DataPoint
+	//var data []domain.RawDataPoint
 	//if err := redis.ScanSlice(values, &data); err != nil {
 	//	fmt.Println(err)
 	//	return
@@ -159,7 +153,7 @@ func main() {
 
 }
 
-func save(aDateAndTime time.Time, dataMap map[string]map[string]*domain.CovidMetric, counter *utility.Counter) {
+func save(aDateAndTime time.Time, dataMap map[string]map[string]*domain.CovidMetric, counter *utility.Counter, daoImpl *dao.DAO) {
 	if dataMap != nil && len(dataMap) > 0 {
 
 		for organization, schools := range dataMap {
@@ -168,7 +162,7 @@ func save(aDateAndTime time.Time, dataMap map[string]map[string]*domain.CovidMet
 			for schoolName, metric := range schools {
 				//log.Println(schoolName)
 				//log.Println(metric)
-				dao.SaveMetric(organization, schoolName, aDateAndTime, metric, counter)
+				daoImpl.SaveMetric(organization, schoolName, aDateAndTime, metric, counter)
 			}
 
 		}
@@ -253,7 +247,7 @@ func categories(w http.ResponseWriter, r *http.Request) {
 	//
 	//}
 
-	data, err := dao.GetCategories()
+	data, err := daoImpl.GetCategories()
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
@@ -279,7 +273,7 @@ func metricsByCategory(w http.ResponseWriter, r *http.Request) {
 		w.Write([]byte(`{"message": "Category is required"}`))
 		return
 	}
-	metricData := dao.GetMetricsByCategory(aParam)
+	metricData := daoImpl.GetMetricsByCategory(aParam)
 	json, err := json.Marshal(&metricData)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
@@ -294,7 +288,7 @@ func schools(w http.ResponseWriter, r *http.Request) {
 
 	w.Header().Set("Content-Type", "application/json")
 
-	data, err := dao.GetSchools()
+	data, err := daoImpl.GetSchools()
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
@@ -324,7 +318,7 @@ func metricsBySchool(w http.ResponseWriter, r *http.Request) {
 		w.Write([]byte(`{"message": "School is required"}`))
 		return
 	}
-	metricData := dao.GetMetricsBySchool(aParam)
+	metricData := daoImpl.GetMetricsBySchool(aParam)
 	json, err := json.Marshal(&metricData)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
@@ -354,7 +348,7 @@ func metricsBySchoolAndCategory(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	metricData := dao.GetMetricsBySchoolAndCategory(aSchool, aCategory)
+	metricData := daoImpl.GetMetricsBySchoolAndCategory(aSchool, aCategory)
 	json, err := json.Marshal(&metricData)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
@@ -384,12 +378,12 @@ func metricDetailsBySchoolAndCategory(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	metricData := dao.GetMetricsBySchoolAndCategory(aSchool, aCategory)
+	metricData := daoImpl.GetMetricsBySchoolAndCategory(aSchool, aCategory)
 
-	details := make([]*domain.DataPoint, 0)
+	details := make([]*domain.RawDataPoint, 0)
 
 	for _, metric := range metricData {
-		_, detail := dao.GetMetric(metric)
+		_, detail := daoImpl.GetMetric(metric)
 		details = append(details, detail)
 	}
 
@@ -412,7 +406,7 @@ func dates(w http.ResponseWriter, r *http.Request) {
 
 	w.Header().Set("Content-Type", "application/json")
 
-	data, err := dao.GetDates()
+	data, err := daoImpl.GetDates()
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
@@ -439,7 +433,7 @@ func metricsByDate(w http.ResponseWriter, r *http.Request) {
 		w.Write([]byte(`{"message": "Date as yyyymmddhh24miss is required"}`))
 		return
 	}
-	metricData := dao.GetMetricsByDate(aParam)
+	metricData := daoImpl.GetMetricsByDate(aParam)
 	json, err := json.Marshal(&metricData)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
@@ -460,7 +454,7 @@ func metric(w http.ResponseWriter, r *http.Request) {
 		w.Write([]byte(`{"message": "Date as yyyymmddhh24miss is required"}`))
 		return
 	}
-	err, metricData := dao.GetMetric(aParam)
+	err, metricData := daoImpl.GetMetric(aParam)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return

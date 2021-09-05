@@ -32,16 +32,16 @@ func parseDateFromFileName(fileName string) time.Time {
 	return aTime
 }
 
-func ParseCSV(fileName string) (time.Time, map[string]map[string]*domain.CovidMetric) {
+func ParseCSV(fileName string, redis *redis_utility.RedisConnection) (time.Time, map[string]map[string]*domain.CovidMetric) {
 
 	key := fmt.Sprintf("file:%s_data", fileName)
 	dataMap := make(map[string]map[string]*domain.CovidMetric)
 	aTime := parseDateFromFileName(fileName)
 
-	conn := redis_utility.GetRedisConnection()
+	conn := redis.GetRedisConnection()
 	defer conn.Close()
 
-	if redis_utility.CacheKeyExists(key) {
+	if redis.CacheKeyExists(key) {
 		return aTime, nil
 
 	}
@@ -165,11 +165,14 @@ func updateSchoolMetrics(record []string, category string, dataMap map[string]ma
 		if !found {
 			log.Fatal("poop")
 		}
-		value, err := strconv.Atoi(record[2+i])
-		if err != nil {
-			log.Fatal("Encountered a non numeric value in csv data position")
+		recordValue := record[2+i]
+		if recordValue != "" {
+			value, err := strconv.Atoi(record[2+i])
+			if err != nil {
+				log.Fatal("Encountered a non numeric value in csv data position")
+			}
+			metricAssignmentFunction(metric, value)
 		}
-		metricAssignmentFunction(metric, value)
 
 		i++
 	}

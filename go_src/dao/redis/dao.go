@@ -11,11 +11,19 @@ import (
 	"time"
 )
 
-func GetMetricsBySchool(aString string) []string {
+type DAO struct {
+	redis *redis_utility.RedisConnection
+}
+
+func Factory(aRedis *redis_utility.RedisConnection) *DAO {
+	return &DAO{redis: aRedis}
+}
+
+func (me *DAO) GetMetricsBySchool(aString string) []string {
 
 	var data []string
 
-	conn := redis_utility.GetRedisConnection()
+	conn := me.redis.GetRedisConnection()
 	defer conn.Close()
 
 	key := fmt.Sprintf("SCHOOL_%s_DATA", aString)
@@ -31,11 +39,11 @@ func GetMetricsBySchool(aString string) []string {
 	return data
 }
 
-func GetMetricsBySchoolAndCategory(aSchool string, aCategory string) []string {
+func (me *DAO) GetMetricsBySchoolAndCategory(aSchool string, aCategory string) []string {
 
 	var data []string
 
-	conn := redis_utility.GetRedisConnection()
+	conn := me.redis.GetRedisConnection()
 	defer conn.Close()
 
 	key := fmt.Sprintf("SCHOOL_%s_CATEGORY_%s_DATA", aSchool, aCategory)
@@ -51,11 +59,11 @@ func GetMetricsBySchoolAndCategory(aSchool string, aCategory string) []string {
 	return data
 }
 
-func GetMetricsByDate(aString string) []string {
+func (me *DAO) GetMetricsByDate(aString string) []string {
 
 	var data []string
 
-	conn := redis_utility.GetRedisConnection()
+	conn := me.redis.GetRedisConnection()
 	defer conn.Close()
 
 	key := fmt.Sprintf("DATE_%s_DATA", aString)
@@ -71,11 +79,11 @@ func GetMetricsByDate(aString string) []string {
 	return data
 }
 
-func GetMetricsByCategory(aString string) []string {
+func (me *DAO) GetMetricsByCategory(aString string) []string {
 
 	var data []string
 
-	conn := redis_utility.GetRedisConnection()
+	conn := me.redis.GetRedisConnection()
 	defer conn.Close()
 
 	key := fmt.Sprintf("CATEGORY_%s_DATA", aString)
@@ -91,7 +99,7 @@ func GetMetricsByCategory(aString string) []string {
 	return data
 }
 
-func setMetricInCache(c redis.Conn, metric *domain.DataPoint, key string) error {
+func (me *DAO) setMetricInCache(c redis.Conn, metric *domain.RawDataPoint, key string) error {
 
 	// serialize User object to JSON
 	json, err := json.Marshal(metric)
@@ -108,13 +116,13 @@ func setMetricInCache(c redis.Conn, metric *domain.DataPoint, key string) error 
 	return nil
 }
 
-func GetMetric(key string) (err error, metric *domain.DataPoint) {
-	return getMetricInCache(key)
+func (me *DAO) GetMetric(key string) (err error, metric *domain.RawDataPoint) {
+	return me.getMetricInCache(key)
 }
 
-func getMetricInCache(key string) (err error, metric *domain.DataPoint) {
+func (me *DAO) getMetricInCache(key string) (err error, metric *domain.RawDataPoint) {
 
-	conn := redis_utility.GetRedisConnection()
+	conn := me.redis.GetRedisConnection()
 	defer conn.Close()
 
 	s, err := redis.String(conn.Do("GET", key))
@@ -124,16 +132,16 @@ func getMetricInCache(key string) (err error, metric *domain.DataPoint) {
 		return err, metric
 	}
 
-	metric = &domain.DataPoint{}
+	metric = &domain.RawDataPoint{}
 	err = json.Unmarshal([]byte(s), metric)
 
 	return err, metric
 }
 
-func SaveMetric(category string, school string, dateAndTime time.Time, metric *domain.CovidMetric, identityCounter *utility.Counter) {
+func (me *DAO) SaveMetric(category string, school string, dateAndTime time.Time, metric *domain.CovidMetric, identityCounter *utility.Counter) {
 	//fmt.Printf("Category %s School: %s ... Date: %s ... Metric %s\n", category, school, dateAndTime, metric)
 
-	conn := redis_utility.GetRedisConnection()
+	conn := me.redis.GetRedisConnection()
 	defer conn.Close()
 
 	var identity = identityCounter.NextId()
@@ -141,14 +149,14 @@ func SaveMetric(category string, school string, dateAndTime time.Time, metric *d
 
 	aDateAsString := utility.AsYYYYMMDDHH24MiSS(dateAndTime)
 
-	metricDataPoint := &domain.DataPoint{
+	metricDataPoint := &domain.RawDataPoint{
 		Metric:   *metric,
 		Category: category,
 		School:   school,
 		DateTime: dateAndTime,
 		Id:       identity,
 	}
-	setMetricInCache(conn, metricDataPoint, key)
+	me.setMetricInCache(conn, metricDataPoint, key)
 
 	////log.Println(key)
 	//aValue, error := conn.Do("HSET", key, "category", category, "school", school, "dateTime", aDateAsString, "ActiveCases", metric.ActiveCases, "TotalPositiveCases", metric.TotalPositiveCases, "ProbableCases", metric.ProbableCases, "ResolvedCases", metric.ResolvedCases)
@@ -211,9 +219,9 @@ func SaveMetric(category string, school string, dateAndTime time.Time, metric *d
 
 }
 
-func GetDates() (data []string, err error) {
+func (me *DAO) GetDates() (data []string, err error) {
 
-	conn := redis_utility.GetRedisConnection()
+	conn := me.redis.GetRedisConnection()
 	defer conn.Close()
 
 	aValues, err := redis.Values(conn.Do("SMEMBERS", "DATES"))
@@ -228,9 +236,9 @@ func GetDates() (data []string, err error) {
 	return
 }
 
-func GetCategories() (data []string, err error) {
+func (me *DAO) GetCategories() (data []string, err error) {
 
-	conn := redis_utility.GetRedisConnection()
+	conn := me.redis.GetRedisConnection()
 	defer conn.Close()
 
 	aValues, err := redis.Values(conn.Do("SMEMBERS", "CATEGORIES"))
@@ -245,9 +253,9 @@ func GetCategories() (data []string, err error) {
 	return
 }
 
-func GetSchools() (data []string, err error) {
+func (me *DAO) GetSchools() (data []string, err error) {
 
-	conn := redis_utility.GetRedisConnection()
+	conn := me.redis.GetRedisConnection()
 	defer conn.Close()
 
 	aValues, err := redis.Values(conn.Do("SMEMBERS", "SCHOOLS"))
