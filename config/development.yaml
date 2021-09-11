@@ -1,3 +1,8 @@
 env:  "development"
 redis:
   password: letmein
+mysql:
+  Password: password
+  UserId: mysql
+  Hostname: 127.0.0.1:3306
+  DbName: hasd_covid

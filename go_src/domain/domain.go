@@ -2,7 +2,23 @@ package domain
 
 import "time"
 
+var (
+	SCHOOL = &CodeType{
+		Id:          "1",
+		Description: "School",
+	}
+
+	CATEGORY = &CodeType{
+		Id:          "2",
+		Description: "Category",
+	}
+)
+
 type CovidMetric struct {
+	Id                 string
+	SchoolId           string
+	CategoryId         string
+	DateTime           time.Time
 	ActiveCases        int
 	TotalPositiveCases int
 	ProbableCases      int
@@ -17,24 +33,26 @@ type RawDataPoint struct {
 	DateTime time.Time
 }
 
-type CodeType struct {
-	Id          uint
-	Description string
-}
+//
+//type School struct {
+//	Id          string
+//	Description string
+//}
+//
+//type Category struct {
+//	Id          string
+//	Description string
+//}
 
 type Code struct {
-	codeType    CodeType
-	id          string
-	description string
+	Id          string
+	Description string
+	Type        *CodeType
 }
 
-var CODETYPE_SCHOOL = &CodeType{
-	Id:          1,
-	Description: "School",
-}
-var CODETYPE_CATEGORY = &CodeType{
-	Id:          2,
-	Description: "Category",
+type CodeType struct {
+	Id          string
+	Description string
 }
 
 //type HASDCovidMetric struct {

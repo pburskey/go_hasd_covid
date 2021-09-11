@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"github.com/gorilla/handlers"
 	"github.com/gorilla/mux"
+	"github.com/pburskey/hasd_covid/dao/mysql"
 	dao "github.com/pburskey/hasd_covid/dao/redis"
 	"github.com/pburskey/hasd_covid/domain"
 	"github.com/pburskey/hasd_covid/parser"
@@ -25,10 +26,67 @@ func main() {
 
 	config := utility.LoadConfiguration()
 
-	redisConnection := redis_utility.Factory(config.Redis)
-	daoImpl = dao.Factory(redisConnection)
 	arguments := os.Args[1:]
 	var fileOrDirectory string = arguments[0] //"sample_data.csv"
+
+	mysqlconfiguration, err := mysql.Configure(config.MySQL)
+	if err != nil {
+		log.Fatal(err)
+	}
+	defer mysqlconfiguration.Close()
+
+	redisConnection := redis_utility.Factory(config.Redis)
+	redisDAOImpl := dao.Build(redisConnection)
+
+	covidDB := mysql.Build(mysqlconfiguration, redisDAOImpl)
+
+	aParserToDB := parser.BuildDbParser(covidDB)
+	aParserToDB.Parse(fileOrDirectory)
+
+	covidDB.SaveCategory(&domain.Code{
+		Description: "poop",
+		Type:        domain.CATEGORY,
+	})
+
+	covidDB.SaveSchool(&domain.Code{
+		Description: "elementary",
+		Type:        domain.SCHOOL,
+	})
+
+	covidDB.SaveSchool(&domain.Code{
+		Description: "middle",
+		Type:        domain.SCHOOL,
+	})
+
+	covidDB.SaveSchool(&domain.Code{
+		Description: "high school",
+		Type:        domain.SCHOOL,
+	})
+
+	cats, err := covidDB.GetCategories()
+	log.Println(cats)
+	sc, err := covidDB.GetSchools()
+
+	covidDB.SaveMetric(&domain.CovidMetric{
+		Id:                 "",
+		SchoolId:           sc[0].Id,
+		CategoryId:         cats[0].Id,
+		DateTime:           time.Now(),
+		ActiveCases:        1,
+		TotalPositiveCases: 2,
+		ProbableCases:      3,
+		ResolvedCases:      4,
+	})
+
+	ametric, err := covidDB.GetMetric(1)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	_, err = covidDB.GetMetricsBySchool(sc[0])
+
+	log.Println(ametric)
+	log.Println(sc)
 
 	fileMode, err := os.Stat(fileOrDirectory)
 	if err != nil {

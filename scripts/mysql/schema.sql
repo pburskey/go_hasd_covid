@@ -34,6 +34,7 @@ CREATE  TABLE IF NOT EXISTS `hasd_covid`.`metric` (
     `metric_skey` INT NOT NULL AUTO_INCREMENT,
     `category_skey` INT NOT NULL ,
     `school_skey` INT NOT NULL ,
+    `ts` TIMESTAMP NOT NULL ,
     `active_cases` int NOT NULL default 0,
     `total_positive_cases` int NOT NULL default 0,
     `total_probable_cases` int NOT NULL default 0,

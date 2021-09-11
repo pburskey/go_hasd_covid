@@ -9,6 +9,7 @@ import (
 type Configuration struct {
 	Env   string
 	Redis RedisConfiguration
+	MySQL map[string]interface{}
 }
 
 type RedisConfiguration struct {

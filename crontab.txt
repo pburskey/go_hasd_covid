@@ -1,1 +1,1 @@
-0 18 * * * (bash; cd /home/patrickburskey/IdeaProjects/go/go_hasd_covid; sh doIt.sh;) 2>&1 | logger -t hasd_data
+0 10,12,14,16,18 * * * (bash; cd /home/patrickburskey/IdeaProjects/go/go_hasd_covid; sh doIt.sh;) 2>&1 | logger -t hasd_data
