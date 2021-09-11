@@ -10,9 +10,13 @@ import (
 	"io/ioutil"
 	"log"
 	"os"
+	"strconv"
 	"strings"
 	"time"
 )
+
+const COVID_DATA = "covid_data_"
+const CSV = ".csv"
 
 type Parser struct {
 	dao dao.DAO
@@ -162,7 +166,7 @@ func (me *Parser) parseDateFromFileName(fileName string) time.Time {
 func (me *Parser) parseCSV(fileName string) (time.Time, map[string]map[string]*domain.CovidMetric) {
 
 	dataMap := make(map[string]map[string]*domain.CovidMetric)
-	aTime := parseDateFromFileName(fileName)
+	aTime := me.parseDateFromFileName(fileName)
 
 	//fmt.Println("Date and time: %s from file name: %s", aTime, fileName)
 	csvFile, err := os.Open(fileName)
@@ -192,7 +196,7 @@ func (me *Parser) parseCSV(fileName string) (time.Time, map[string]map[string]*d
 			}
 			first = false
 		} else {
-			parseCSVRecord(record, dataMap, &categories, &schools)
+			me.parseCSVRecord(record, dataMap, &categories, &schools)
 		}
 
 	}
@@ -220,75 +224,75 @@ func (me *Parser) parseCSV(fileName string) (time.Time, map[string]map[string]*d
 
 
 */
-//
-//func parseCSVRecord(record []string, dataMap map[string]map[string]*domain.CovidMetric, categories *utility.Stack, schools *utility.Stack) {
-//	if record == nil || len(record) <= 0 {
-//		return
-//	}
-//
-//	if utility.CountNonEmptyValuesIn(record) == 2 {
-//		var category string = record[1]
-//		_, ok := dataMap[category]
-//		if !ok {
-//			dataMap[category] = make(map[string]*domain.CovidMetric)
-//			for _, aSchool := range *schools {
-//				//fmt.Println(aSchool)
-//				var metric domain.CovidMetric
-//				dataMap[category][aSchool] = &metric
-//			}
-//		}
-//		//fmt.Printf("Found category %s\n", category)
-//		categories.Push(category)
-//	} else {
-//		category, _ := categories.Peak()
-//		var metricName string = record[1]
-//		//fmt.Printf("Category %s Metric: %s ... Record %s\n", category, metricName, record)
-//		if metricName == "Active Cases" {
-//			metricAssignmentFunction := func(metric *domain.CovidMetric, value int) {
-//				metric.ActiveCases = value
-//			}
-//			updateSchoolMetrics(record, category, dataMap, schools, metricAssignmentFunction)
-//
-//		} else if metricName == "Total Positive Cases" {
-//			metricAssignmentFunction := func(metric *domain.CovidMetric, value int) {
-//				metric.TotalPositiveCases = value
-//			}
-//			updateSchoolMetrics(record, category, dataMap, schools, metricAssignmentFunction)
-//		} else if metricName == "Probable Cases" {
-//			metricAssignmentFunction := func(metric *domain.CovidMetric, value int) {
-//				metric.ProbableCases = value
-//			}
-//			updateSchoolMetrics(record, category, dataMap, schools, metricAssignmentFunction)
-//		} else if metricName == "Resolved (no longer active)" {
-//			metricAssignmentFunction := func(metric *domain.CovidMetric, value int) {
-//				metric.ResolvedCases = value
-//			}
-//			updateSchoolMetrics(record, category, dataMap, schools, metricAssignmentFunction)
-//		}
-//
-//	}
-//
-//}
-//
-//func updateSchoolMetrics(record []string, category string, dataMap map[string]map[string]*domain.CovidMetric, schools *utility.Stack, metricAssignmentFunction func(*domain.CovidMetric, int)) {
-//	i := 0
-//	for _, aSchool := range *schools {
-//		metric, found := dataMap[category][aSchool]
-//		if !found {
-//			log.Fatal("poop")
-//		}
-//		recordValue := record[2+i]
-//		if recordValue != "" {
-//			value, err := strconv.Atoi(record[2+i])
-//			if err != nil {
-//				log.Fatal("Encountered a non numeric value in csv data position")
-//			}
-//			metricAssignmentFunction(metric, value)
-//		}
-//
-//		i++
-//	}
-//}
+
+func (me *Parser) parseCSVRecord(record []string, dataMap map[string]map[string]*domain.CovidMetric, categories *utility.Stack, schools *utility.Stack) {
+	if record == nil || len(record) <= 0 {
+		return
+	}
+
+	if utility.CountNonEmptyValuesIn(record) == 2 {
+		var category string = record[1]
+		_, ok := dataMap[category]
+		if !ok {
+			dataMap[category] = make(map[string]*domain.CovidMetric)
+			for _, aSchool := range *schools {
+				//fmt.Println(aSchool)
+				var metric domain.CovidMetric
+				dataMap[category][aSchool] = &metric
+			}
+		}
+		//fmt.Printf("Found category %s\n", category)
+		categories.Push(category)
+	} else {
+		category, _ := categories.Peak()
+		var metricName string = record[1]
+		//fmt.Printf("Category %s Metric: %s ... Record %s\n", category, metricName, record)
+		if metricName == "Active Cases" {
+			metricAssignmentFunction := func(metric *domain.CovidMetric, value int) {
+				metric.ActiveCases = value
+			}
+			me.updateSchoolMetrics(record, category, dataMap, schools, metricAssignmentFunction)
+
+		} else if metricName == "Total Positive Cases" {
+			metricAssignmentFunction := func(metric *domain.CovidMetric, value int) {
+				metric.TotalPositiveCases = value
+			}
+			me.updateSchoolMetrics(record, category, dataMap, schools, metricAssignmentFunction)
+		} else if metricName == "Probable Cases" {
+			metricAssignmentFunction := func(metric *domain.CovidMetric, value int) {
+				metric.ProbableCases = value
+			}
+			me.updateSchoolMetrics(record, category, dataMap, schools, metricAssignmentFunction)
+		} else if metricName == "Resolved (no longer active)" {
+			metricAssignmentFunction := func(metric *domain.CovidMetric, value int) {
+				metric.ResolvedCases = value
+			}
+			me.updateSchoolMetrics(record, category, dataMap, schools, metricAssignmentFunction)
+		}
+
+	}
+
+}
+
+func (me *Parser) updateSchoolMetrics(record []string, category string, dataMap map[string]map[string]*domain.CovidMetric, schools *utility.Stack, metricAssignmentFunction func(*domain.CovidMetric, int)) {
+	i := 0
+	for _, aSchool := range *schools {
+		metric, found := dataMap[category][aSchool]
+		if !found {
+			log.Fatal("poop")
+		}
+		recordValue := record[2+i]
+		if recordValue != "" {
+			value, err := strconv.Atoi(record[2+i])
+			if err != nil {
+				log.Fatal("Encountered a non numeric value in csv data position")
+			}
+			metricAssignmentFunction(metric, value)
+		}
+
+		i++
+	}
+}
 
 /*
 Store data in redis

@@ -11,7 +11,6 @@ import (
 	"github.com/pburskey/hasd_covid/parser"
 	redis_utility "github.com/pburskey/hasd_covid/redis"
 	"github.com/pburskey/hasd_covid/utility"
-	"io/ioutil"
 	"log"
 	"net/http"
 	"os"
@@ -43,26 +42,6 @@ func main() {
 	aParserToDB := parser.BuildDbParser(covidDB)
 	aParserToDB.Parse(fileOrDirectory)
 
-	covidDB.SaveCategory(&domain.Code{
-		Description: "poop",
-		Type:        domain.CATEGORY,
-	})
-
-	covidDB.SaveSchool(&domain.Code{
-		Description: "elementary",
-		Type:        domain.SCHOOL,
-	})
-
-	covidDB.SaveSchool(&domain.Code{
-		Description: "middle",
-		Type:        domain.SCHOOL,
-	})
-
-	covidDB.SaveSchool(&domain.Code{
-		Description: "high school",
-		Type:        domain.SCHOOL,
-	})
-
 	cats, err := covidDB.GetCategories()
 	log.Println(cats)
 	sc, err := covidDB.GetSchools()
@@ -87,36 +66,36 @@ func main() {
 
 	log.Println(ametric)
 	log.Println(sc)
-
-	fileMode, err := os.Stat(fileOrDirectory)
-	if err != nil {
-		log.Fatal("Encountered error opening: %s", fileOrDirectory, err)
-	}
-	var counter utility.Counter
-
-	if fileMode.Mode().IsDir() {
-		files, err := ioutil.ReadDir(fileOrDirectory)
-		if err != nil {
-			log.Fatal("Encountered error reading file names in directory: %s", fileOrDirectory, err)
-		}
-
-		for _, aFileName := range files {
-			//fmt.Println(aFileName.Name())
-
-			mungedName := (fileOrDirectory + "/" + aFileName.Name())
-			var aTime time.Time
-			var aMap map[string]map[string]*domain.CovidMetric
-			aTime, aMap = parser.ParseCSV(mungedName, redisConnection)
-			save(aTime, aMap, &counter, daoImpl)
-		}
-	} else {
-		//log.Print(fileOrDirectory)
-
-		var aTime time.Time
-		var aMap map[string]map[string]*domain.CovidMetric
-		aTime, aMap = parser.ParseCSV(fileOrDirectory, redisConnection)
-		save(aTime, aMap, &counter, daoImpl)
-	}
+	//
+	//fileMode, err := os.Stat(fileOrDirectory)
+	//if err != nil {
+	//	log.Fatal("Encountered error opening: %s", fileOrDirectory, err)
+	//}
+	//var counter utility.Counter
+	//
+	//if fileMode.Mode().IsDir() {
+	//	files, err := ioutil.ReadDir(fileOrDirectory)
+	//	if err != nil {
+	//		log.Fatal("Encountered error reading file names in directory: %s", fileOrDirectory, err)
+	//	}
+	//
+	//	for _, aFileName := range files {
+	//		//fmt.Println(aFileName.Name())
+	//
+	//		mungedName := (fileOrDirectory + "/" + aFileName.Name())
+	//		var aTime time.Time
+	//		var aMap map[string]map[string]*domain.CovidMetric
+	//		aTime, aMap = parser.ParseCSV(mungedName, redisConnection)
+	//		save(aTime, aMap, &counter, daoImpl)
+	//	}
+	//} else {
+	//	//log.Print(fileOrDirectory)
+	//
+	//	var aTime time.Time
+	//	var aMap map[string]map[string]*domain.CovidMetric
+	//	aTime, aMap = parser.ParseCSV(fileOrDirectory, redisConnection)
+	//	save(aTime, aMap, &counter, daoImpl)
+	//}
 
 	//
 	//letters := [...]string{"a", "b", "c", "d", "", ""}
