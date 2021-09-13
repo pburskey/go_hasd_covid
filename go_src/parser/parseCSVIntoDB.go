@@ -220,7 +220,7 @@ func (me *Parser) parseCSV(fileName string) (time.Time, map[string]map[string]*d
 			}
 			first = false
 		} else {
-			me.parseCSVRecord(record, dataMap, &categories, &schools)
+			me.parseCSVRecord(aTime, record, dataMap, &categories, &schools)
 		}
 
 	}
@@ -249,20 +249,20 @@ func (me *Parser) parseCSV(fileName string) (time.Time, map[string]map[string]*d
 
 */
 
-func (me *Parser) parseCSVRecord(record []string, dataMap map[string]map[string]*domain.CovidMetric, categories *utility.Stack, schools *utility.Stack) {
+func (me *Parser) parseCSVRecord(aTime time.Time, record []string, dataMap map[string]map[string]*domain.CovidMetric, categories *utility.Stack, schools *utility.Stack) {
 	if record == nil || len(record) <= 0 {
 		return
 	}
 
-	if utility.CountNonEmptyValuesIn(record) == 2 {
+	if me.recordContainsCategory(record) {
 		var category string = record[1]
-		_, ok := dataMap[category]
-		if !ok {
+		if _, ok := dataMap[category]; !ok {
 			dataMap[category] = make(map[string]*domain.CovidMetric)
 			for _, aSchool := range *schools {
 				//fmt.Println(aSchool)
-				var metric domain.CovidMetric
-				dataMap[category][aSchool] = &metric
+				dataMap[category][aSchool] = &domain.CovidMetric{
+					DateTime: time.Time{},
+				}
 			}
 		}
 		//fmt.Printf("Found category %s\n", category)
@@ -316,6 +316,26 @@ func (me *Parser) updateSchoolMetrics(record []string, category string, dataMap 
 
 		i++
 	}
+}
+
+func (me *Parser) recordContainsCategory(record []string) bool {
+
+	knownCategories := []string{
+		"staff", "students",
+	}
+	if utility.CountNonEmptyValuesIn(record) == 2 {
+		for _, aString := range record {
+			for _, aPotentialCategory := range knownCategories {
+				if strings.EqualFold(aPotentialCategory, aString) {
+					return true
+				}
+
+			}
+
+		}
+	}
+
+	return false
 }
 
 /*

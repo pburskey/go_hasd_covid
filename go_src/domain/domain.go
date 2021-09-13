@@ -62,3 +62,13 @@ type CodeType struct {
 //	dateAndTime time.Time
 //	metric      *domain.CovidMetric
 //}
+
+func FindCodeByID(codes []*Code, id string) *Code {
+
+	for _, aCandidateCode := range codes {
+		if aCandidateCode.Id == id {
+			return aCandidateCode
+		}
+	}
+	return nil
+}

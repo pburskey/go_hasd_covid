@@ -8,25 +8,29 @@ import (
 	"github.com/pburskey/hasd_covid/utility"
 	"log"
 	"os"
+	"path/filepath"
 	"strconv"
 	"time"
 )
 
 type prettyCSVShelf struct {
-	dao dao.DAO
+	dao           dao.DAO
+	dataDirectory string
 }
 
-func BuildPrettyCSVShelf(aDao dao.DAO) ShelfI {
-	return &prettyCSVShelf{dao: aDao}
+func BuildPrettyCSVShelf(aDao dao.DAO, aDirectory string) ShelfI {
+	return &prettyCSVShelf{dao: aDao, dataDirectory: aDirectory}
 }
 
 func (me *prettyCSVShelf) Shelve(aTime time.Time, metrics []*domain.CovidMetric) error {
 	if metrics != nil {
 
 		dataTime := utility.AsYYYYMMDDHH24MiSS(aTime)
-		fileName := fmt.Sprintf("covid_data_parsed_%v.csv", dataTime)
 
-		f, err := os.Create(fileName)
+		fileName := fmt.Sprintf("covid_data_parsed_%v.csv", dataTime)
+		aFilePath := filepath.Join(me.dataDirectory, fileName)
+
+		f, err := os.Create(aFilePath)
 		if err != nil {
 			log.Fatalln("failed to open file", err)
 		}
@@ -41,17 +45,16 @@ func (me *prettyCSVShelf) Shelve(aTime time.Time, metrics []*domain.CovidMetric)
 			log.Fatalln("error writing record to file", err)
 		}
 
+		schools, _ := me.dao.GetSchools()
+		categories, _ := me.dao.GetCategories()
+
 		for _, aMetric := range metrics {
 			if aMetric != nil {
 
-				school, err := me.dao.FindSchoolBy(aMetric.SchoolId)
-				if err != nil {
+				school := domain.FindCodeByID(schools, aMetric.SchoolId)
 
-				}
-				category, err := me.dao.FindCategoryBy(aMetric.CategoryId)
-				if err != nil {
+				category := domain.FindCodeByID(categories, aMetric.CategoryId)
 
-				}
 				record = []string{dataTime, school.Description, category.Description, strconv.Itoa(aMetric.ActiveCases), strconv.Itoa(aMetric.TotalPositiveCases), strconv.Itoa(aMetric.ProbableCases), strconv.Itoa(aMetric.ResolvedCases)}
 
 				if err := w.Write(record); err != nil {

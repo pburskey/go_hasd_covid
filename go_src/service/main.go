@@ -40,8 +40,8 @@ func main() {
 	covidDB := mysql.Build(mysqlconfiguration, redisDAOImpl)
 
 	shelves := make([]parser.ShelfI, 0)
-	shelves = append(shelves, parser.BuildMySqlShelf(covidDB))
-	shelves = append(shelves, parser.BuildPrettyCSVShelf())
+	//shelves = append(shelves, parser.BuildMySqlShelf(covidDB))
+	shelves = append(shelves, parser.BuildPrettyCSVShelf(covidDB, fileOrDirectory))
 	aParserToDB := parser.BuildParser(covidDB, shelves)
 	aParserToDB.Parse(fileOrDirectory)
 
