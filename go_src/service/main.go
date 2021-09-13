@@ -39,7 +39,10 @@ func main() {
 
 	covidDB := mysql.Build(mysqlconfiguration, redisDAOImpl)
 
-	aParserToDB := parser.BuildDbParser(covidDB)
+	shelves := make([]parser.ShelfI, 0)
+	shelves = append(shelves, parser.BuildMySqlShelf(covidDB))
+	shelves = append(shelves, parser.BuildPrettyCSVShelf())
+	aParserToDB := parser.BuildParser(covidDB, shelves)
 	aParserToDB.Parse(fileOrDirectory)
 
 	cats, err := covidDB.GetCategories()

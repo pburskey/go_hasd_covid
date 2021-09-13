@@ -10,4 +10,6 @@ type DAO interface {
 	SaveMetric(*domain.CovidMetric) (*domain.CovidMetric, error)
 	SaveSchool(*domain.Code) (*domain.Code, error)
 	SaveCategory(*domain.Code) (*domain.Code, error)
+	FindSchoolBy(id string) (*domain.Code, error)
+	FindCategoryBy(id string) (*domain.Code, error)
 }

@@ -19,11 +19,12 @@ const COVID_DATA = "covid_data_"
 const CSV = ".csv"
 
 type Parser struct {
-	dao dao.DAO
+	dao     dao.DAO
+	shelves []ShelfI
 }
 
-func BuildDbParser(aDAO dao.DAO) *Parser {
-	return &Parser{dao: aDAO}
+func BuildParser(adao dao.DAO, ashelves []ShelfI) *Parser {
+	return &Parser{shelves: ashelves, dao: adao}
 }
 
 func (me *Parser) Parse(fileOrDirectory string) {
@@ -43,44 +44,25 @@ func (me *Parser) Parse(fileOrDirectory string) {
 			log.Println(fmt.Sprintf("Processing file name: %s", aFileName.Name()))
 
 			mungedName := (fileOrDirectory + "/" + aFileName.Name())
-			me.Shelve(me.parseCSV(mungedName))
+			aTime, aMap, _ := me.parseCSV(mungedName)
+			metrics, err := me.munge(aTime, aMap)
+			if err != nil {
+
+			}
+			me.shelve(aTime, metrics)
+
 		}
 	} else {
 		//log.Print(fileOrDirectory)
 
-		me.Shelve(me.parseCSV(fileOrDirectory))
+		aTime, aMap, _ := me.parseCSV(fileOrDirectory)
+		metrics, err := me.munge(aTime, aMap)
+		if err != nil {
 
-	}
-}
-
-func (me *Parser) Shelve(aTime time.Time, data map[string]map[string]*domain.CovidMetric) error {
-	if data != nil {
-
-		for categoryName, schoolMap := range data {
-
-			if _, err := me.scanForCategoriesAndSaveIfNecessary(categoryName); err != nil {
-				log.Fatal(err)
-				return err
-			}
-			categories, _ := me.dao.GetCategories()
-			category := FindCategoryByDescription(categoryName, categories)
-			for schoolName, metric := range schoolMap {
-
-				if _, err := me.scanForSchoolsAndSaveIfNecessary(schoolName); err != nil {
-					log.Fatal(err)
-					return err
-				}
-
-				schools, _ := me.dao.GetSchools()
-				school := FindSchoolByDescription(schoolName, schools)
-				metric.SchoolId = school.Id
-				metric.CategoryId = category.Id
-				metric.DateTime = aTime
-				me.dao.SaveMetric(metric)
-			}
 		}
+		me.shelve(aTime, metrics)
+
 	}
-	return nil
 }
 
 func (me *Parser) scanForSchoolsAndSaveIfNecessary(aDescription string) ([]*domain.Code, error) {
@@ -163,7 +145,49 @@ func (me *Parser) parseDateFromFileName(fileName string) time.Time {
 	return aTime
 }
 
-func (me *Parser) parseCSV(fileName string) (time.Time, map[string]map[string]*domain.CovidMetric) {
+func (me *Parser) munge(aTime time.Time, data map[string]map[string]*domain.CovidMetric) ([]*domain.CovidMetric, error) {
+	var metrics []*domain.CovidMetric
+	var err error
+
+	for categoryName, schoolMap := range data {
+
+		if _, err := me.scanForCategoriesAndSaveIfNecessary(categoryName); err != nil {
+			log.Fatal(err)
+			return nil, err
+		}
+		categories, _ := me.dao.GetCategories()
+		category := FindCategoryByDescription(categoryName, categories)
+		for schoolName, metric := range schoolMap {
+
+			if _, err := me.scanForSchoolsAndSaveIfNecessary(schoolName); err != nil {
+				log.Fatal(err)
+				return nil, err
+			}
+
+			schools, _ := me.dao.GetSchools()
+			school := FindSchoolByDescription(schoolName, schools)
+			metric.SchoolId = school.Id
+			metric.CategoryId = category.Id
+			metric.DateTime = aTime
+			metrics = append(metrics, metric)
+		}
+	}
+
+	return metrics, err
+}
+func (me *Parser) shelve(aTime time.Time, metrics []*domain.CovidMetric) error {
+	var err error
+	if me.shelves != nil {
+		for _, aShelf := range me.shelves {
+			if err := aShelf.Shelve(aTime, metrics); err != nil {
+				return err
+			}
+		}
+	}
+	return err
+}
+
+func (me *Parser) parseCSV(fileName string) (time.Time, map[string]map[string]*domain.CovidMetric, error) {
 
 	dataMap := make(map[string]map[string]*domain.CovidMetric)
 	aTime := me.parseDateFromFileName(fileName)
@@ -175,7 +199,7 @@ func (me *Parser) parseCSV(fileName string) (time.Time, map[string]map[string]*d
 	}
 	r := csv.NewReader(csvFile)
 	if r == nil {
-		return aTime, nil
+		return aTime, nil, nil
 	}
 
 	var categories utility.Stack
@@ -202,7 +226,7 @@ func (me *Parser) parseCSV(fileName string) (time.Time, map[string]map[string]*d
 	}
 	//log.Println(dataMap)
 
-	return aTime, dataMap
+	return aTime, dataMap, nil
 
 }
 
