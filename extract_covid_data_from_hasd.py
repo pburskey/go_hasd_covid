@@ -82,4 +82,4 @@ dataFrame = pd.DataFrame(data = data, columns = list_header)
 now = datetime.today().strftime('%Y%m%d%H%M%S')
 # Converting Pandas DataFrame
 # into CSV file
-dataFrame.to_csv('incoming/covid_data_' + now + '.csv')
+dataFrame.to_csv('data/incoming/covid_data_' + now + '.csv')
