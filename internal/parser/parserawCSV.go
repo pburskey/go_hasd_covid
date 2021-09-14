@@ -18,16 +18,16 @@ import (
 const COVID_DATA = "covid_data_"
 const CSV = ".csv"
 
-type Parser struct {
+type RawParser struct {
 	dao     dao.DAO
 	shelves []ShelfI
 }
 
-func BuildParser(adao dao.DAO, ashelves []ShelfI) *Parser {
-	return &Parser{shelves: ashelves, dao: adao}
+func BuildRawParser(adao dao.DAO, ashelves []ShelfI) *RawParser {
+	return &RawParser{shelves: ashelves, dao: adao}
 }
 
-func (me *Parser) Parse(fileOrDirectory string) {
+func (me *RawParser) Parse(fileOrDirectory string) {
 
 	fileMode, err := os.Stat(fileOrDirectory)
 	if err != nil {
@@ -65,7 +65,7 @@ func (me *Parser) Parse(fileOrDirectory string) {
 	}
 }
 
-func (me *Parser) scanForSchoolsAndSaveIfNecessary(aDescription string) ([]*domain.Code, error) {
+func (me *RawParser) scanForSchoolsAndSaveIfNecessary(aDescription string) ([]*domain.Code, error) {
 	var schools []*domain.Code
 	var err error
 	if schools, err = me.dao.GetSchools(); err != nil {
@@ -87,7 +87,7 @@ func (me *Parser) scanForSchoolsAndSaveIfNecessary(aDescription string) ([]*doma
 
 }
 
-func (me *Parser) scanForCategoriesAndSaveIfNecessary(aDescription string) ([]*domain.Code, error) {
+func (me *RawParser) scanForCategoriesAndSaveIfNecessary(aDescription string) ([]*domain.Code, error) {
 	var categories []*domain.Code
 	var err error
 	if categories, err = me.dao.GetCategories(); err != nil {
@@ -130,7 +130,7 @@ func FindCategoryByDescription(aDescription string, objects []*domain.Code) *dom
 	return found
 }
 
-func (me *Parser) parseDateFromFileName(fileName string) time.Time {
+func (me *RawParser) parseDateFromFileName(fileName string) time.Time {
 	start := strings.Index(fileName, COVID_DATA)
 
 	/*
@@ -145,7 +145,7 @@ func (me *Parser) parseDateFromFileName(fileName string) time.Time {
 	return aTime
 }
 
-func (me *Parser) munge(aTime time.Time, data map[string]map[string]*domain.CovidMetric) ([]*domain.CovidMetric, error) {
+func (me *RawParser) munge(aTime time.Time, data map[string]map[string]*domain.CovidMetric) ([]*domain.CovidMetric, error) {
 	var metrics []*domain.CovidMetric
 	var err error
 
@@ -175,7 +175,7 @@ func (me *Parser) munge(aTime time.Time, data map[string]map[string]*domain.Covi
 
 	return metrics, err
 }
-func (me *Parser) shelve(aTime time.Time, metrics []*domain.CovidMetric) error {
+func (me *RawParser) shelve(aTime time.Time, metrics []*domain.CovidMetric) error {
 	var err error
 	if me.shelves != nil {
 		for _, aShelf := range me.shelves {
@@ -187,7 +187,7 @@ func (me *Parser) shelve(aTime time.Time, metrics []*domain.CovidMetric) error {
 	return err
 }
 
-func (me *Parser) parseCSV(fileName string) (time.Time, map[string]map[string]*domain.CovidMetric, error) {
+func (me *RawParser) parseCSV(fileName string) (time.Time, map[string]map[string]*domain.CovidMetric, error) {
 
 	dataMap := make(map[string]map[string]*domain.CovidMetric)
 	aTime := me.parseDateFromFileName(fileName)
@@ -249,7 +249,7 @@ func (me *Parser) parseCSV(fileName string) (time.Time, map[string]map[string]*d
 
 */
 
-func (me *Parser) parseCSVRecord(aTime time.Time, record []string, dataMap map[string]map[string]*domain.CovidMetric, categories *utility.Stack, schools *utility.Stack) {
+func (me *RawParser) parseCSVRecord(aTime time.Time, record []string, dataMap map[string]map[string]*domain.CovidMetric, categories *utility.Stack, schools *utility.Stack) {
 	if record == nil || len(record) <= 0 {
 		return
 	}
@@ -298,7 +298,7 @@ func (me *Parser) parseCSVRecord(aTime time.Time, record []string, dataMap map[s
 
 }
 
-func (me *Parser) updateSchoolMetrics(record []string, category string, dataMap map[string]map[string]*domain.CovidMetric, schools *utility.Stack, metricAssignmentFunction func(*domain.CovidMetric, int)) {
+func (me *RawParser) updateSchoolMetrics(record []string, category string, dataMap map[string]map[string]*domain.CovidMetric, schools *utility.Stack, metricAssignmentFunction func(*domain.CovidMetric, int)) {
 	i := 0
 	for _, aSchool := range *schools {
 		metric, found := dataMap[category][aSchool]
@@ -318,7 +318,7 @@ func (me *Parser) updateSchoolMetrics(record []string, category string, dataMap 
 	}
 }
 
-func (me *Parser) recordContainsCategory(record []string) bool {
+func (me *RawParser) recordContainsCategory(record []string) bool {
 
 	knownCategories := []string{
 		"staff", "students",

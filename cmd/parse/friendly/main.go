@@ -18,7 +18,6 @@ func main() {
 
 	arguments := os.Args[1:]
 	var sourceDirectory string = arguments[0] //"sample_data.csv"
-	var targetDirectory string = arguments[1] //"sample_data.csv"
 
 	mysqlconfiguration, err := mysql.Configure(config.MySQL)
 	if err != nil {
@@ -33,8 +32,7 @@ func main() {
 
 	shelves := make([]parser.ShelfI, 0)
 	shelves = append(shelves, parser.BuildMySqlShelf(covidDB))
-	shelves = append(shelves, parser.BuildPrettyCSVShelf(covidDB, targetDirectory))
-	aParserToDB := parser.BuildParser(covidDB, shelves)
-	aParserToDB.Parse(sourceDirectory)
+	aParser := parser.BuildFriendlyParser(covidDB, shelves)
+	aParser.Parse(sourceDirectory)
 
 }
