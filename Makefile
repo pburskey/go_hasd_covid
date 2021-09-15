@@ -1,6 +1,6 @@
 APP_NAME=HASD_COVID
-
-.PHONY:                             ##this help
+export ROOT_DIR=${PWD}
+.help:                             ##this help
 	@echo
 	@echo "Choose a command to run in application: $(APP_NAME)"
 	@echo
@@ -16,7 +16,13 @@ start: docker_clean tools           ##Starting this process along with necessary
 
 get_data:                           ##Initiates a data pull request from HASD
 	@echo "Pulling data from hasd"
-	/usr/bin/python3.8 /home/patrickburskey/IdeaProjects/go/go_hasd_covid/extract_covid_data_from_hasd.py
+	./doIt.sh
+
+parse_raw:                           ##Initiates a data pull request from HASD
+	@echo "Parsing raw data into a more friendly format"
+	@echo ${ROOT_DIR}
+	go ${ROOT_DIR}/cmd/parse/raw/main.go ${ROOT_DIR}/data/raw ${ROOT_DIR}/data/parsed
+
 
 report: start                       ##Starts this process, runs a report and shuts down.
 	@echo "Running report"
