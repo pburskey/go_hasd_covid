@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"github.com/spf13/viper"
 	"os"
+	"path/filepath"
 )
 
 type Configuration struct {
@@ -16,12 +17,14 @@ type RedisConfiguration struct {
 	Password string
 }
 
-func LoadConfiguration() *Configuration {
+func LoadConfiguration(path string) *Configuration {
 	viper.SetConfigName("development") // config file name without extension
 	viper.SetConfigType("yaml")
 	//viper.AddConfigPath(".")
-	viper.AddConfigPath("./config/") // config file path
-	viper.AutomaticEnv()             // read value ENV variable
+
+	//viper.AddConfigPath("./config/") // config file path
+	viper.AddConfigPath(filepath.Join(path, "/config/"))
+	viper.AutomaticEnv() // read value ENV variable
 
 	err := viper.ReadInConfig()
 	if err != nil {

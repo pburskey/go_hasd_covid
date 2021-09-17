@@ -13,6 +13,7 @@ import (
 	"github.com/pburskey/covid/internal/utility"
 	"log"
 	"net/http"
+	"os"
 	"sort"
 	"strconv"
 )
@@ -21,7 +22,8 @@ var daoImpl dao.DAO
 
 func main() {
 
-	config := utility.LoadConfiguration()
+	arguments := os.Args[1:]
+	config := utility.LoadConfiguration(arguments[0])
 
 	mysqlconfiguration, err := mysql.Configure(config.MySQL)
 	if err != nil {

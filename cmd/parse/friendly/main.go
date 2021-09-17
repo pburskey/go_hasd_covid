@@ -14,10 +14,10 @@ var daoImpl *dao.DAO
 
 func main() {
 
-	config := utility.LoadConfiguration()
-
 	arguments := os.Args[1:]
-	var sourceDirectory string = arguments[0] //"sample_data.csv"
+	config := utility.LoadConfiguration(arguments[0])
+
+	var sourceDirectory string = arguments[1] //"sample_data.csv"
 
 	mysqlconfiguration, err := mysql.Configure(config.MySQL)
 	if err != nil {
