@@ -1,0 +1,13 @@
+datetime,school,category,active_cases,total_positive_cases,probable_cases,resolved
+20210913180001,HHS,students,11,12,0,1
+20210913180001,HES,students,2,3,0,1
+20210913180001,HMS-FWA,students,11,14,0,3
+20210913180001,NGES,students,5,5,0,0
+20210913180001,GES,students,1,1,0,0
+20210913180001,GMS,students,3,4,0,1
+20210913180001,HHS,staff,1,1,0,0
+20210913180001,HES,staff,0,0,0,0
+20210913180001,HMS-FWA,staff,0,0,0,0
+20210913180001,NGES,staff,0,0,0,0
+20210913180001,GES,staff,0,2,0,2
+20210913180001,GMS,staff,0,0,0,0
