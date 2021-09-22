@@ -7,9 +7,9 @@ import sys
 import os
 
 dataDirectory=sys.argv[1]
-programName=sys.argv[0]
-print(programName)
-print(dataDirectory)
+# programName=sys.argv[0]
+# print(programName)
+# print(dataDirectory)
 
 # coding=utf-8
 page = requests.get("https://www.hasd.org/community/covid-19-daily-updates.cfm")
@@ -86,6 +86,7 @@ now = datetime.today().strftime('%Y%m%d%H%M%S')
 # Converting Pandas DataFrame
 # into CSV file
 
-dataFileNameAndPath=dataDirectory + '/data/incoming/covid_data_' + now + '.csv'
+dataFileNameAndPath = dataDirectory + '/covid_data_' + now + '.csv'
 print(dataFileNameAndPath)
 dataFrame.to_csv(dataFileNameAndPath)
+

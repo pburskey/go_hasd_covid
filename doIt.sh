@@ -1,2 +1,2 @@
 #!/bin/bash
-/usr/bin/python3 /home/patrickburskey/IdeaProjects/go/go_hasd_covid/extract_covid_data_from_hasd.py
+/usr/bin/python3 /home/patrickburskey/IdeaProjects/go/go_hasd_covid/extract_covid_data_from_hasd.py /home/patrickburskey/IdeaProjects/go/go_hasd_covid/data/incoming
