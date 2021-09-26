@@ -1,10 +1,10 @@
 datetime,school,category,active_cases,total_positive_cases,probable_cases,resolved
+20201111194959,GMS,students,0,20,0,20
 20201111194959,HHS,students,7,44,0,37
 20201111194959,HES,students,3,13,0,10
 20201111194959,HMS-FWA,students,2,36,0,34
 20201111194959,NGES,students,3,14,0,11
 20201111194959,GES,students,3,15,0,12
-20201111194959,GMS,students,0,20,0,20
 20201111194959,HHS,staff,4,15,0,11
 20201111194959,HES,staff,2,10,0,8
 20201111194959,HMS-FWA,staff,2,15,0,13

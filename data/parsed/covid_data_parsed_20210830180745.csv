@@ -1,10 +1,10 @@
 datetime,school,category,active_cases,total_positive_cases,probable_cases,resolved
-20210830180745,NGES,students,0,0,0,0
-20210830180745,GES,students,0,0,0,0
-20210830180745,GMS,students,0,0,0,0
 20210830180745,HHS,students,0,0,0,0
 20210830180745,HES,students,0,0,0,0
 20210830180745,HMS-FWA,students,0,0,0,0
+20210830180745,NGES,students,0,0,0,0
+20210830180745,GES,students,0,0,0,0
+20210830180745,GMS,students,0,0,0,0
 20210830180745,NGES,staff,0,0,0,0
 20210830180745,GES,staff,2,2,0,0
 20210830180745,GMS,staff,0,0,0,0

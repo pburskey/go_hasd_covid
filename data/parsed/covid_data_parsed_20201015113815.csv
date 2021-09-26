@@ -5,9 +5,9 @@ datetime,school,category,active_cases,total_positive_cases,probable_cases,resolv
 20201015113815,GES,students,0,6,1,6
 20201015113815,GMS,students,1,14,0,13
 20201015113815,HHS,students,2,19,2,17
+20201015113815,GMS,staff,0,4,0,4
 20201015113815,HHS,staff,2,4,0,2
 20201015113815,HES,staff,1,4,0,3
 20201015113815,HMS-FWA,staff,4,9,0,5
 20201015113815,NGES,staff,0,2,0,2
 20201015113815,GES,staff,0,4,0,4
-20201015113815,GMS,staff,0,4,0,4

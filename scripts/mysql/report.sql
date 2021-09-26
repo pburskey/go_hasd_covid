@@ -12,4 +12,6 @@ where 1 = 1
   and m.school_skey = s.school_skey
   and m.category_skey = c.category_skey
   #   and ts > (sysdate() - interval '7' DAY)
-order by ts, s.description, c.description desc
+order by ts, s.description, c.description desc;
+
+
